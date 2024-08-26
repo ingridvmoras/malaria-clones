@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy as sci
 import scipy.stats as stats
-import statannot as sta  # import add_stat_annotation
+import statannot as sta 
 
 sns.set_style("white")
 sns.set_context("talk")
@@ -130,3 +130,19 @@ for i in range(num_samples):
 plt.xlabel('Timepoint (weeks)')
 plt.ylabel('Mean Parasitemia (Log-transformed qPCR)')
 plt.show()
+
+percentile_75 = np.percentile(all_means_df.values.flatten(), 75)
+print("75th percentile:", percentile_75)
+
+# Define the threshold as the 75th percentile of the means
+threshold = percentile_75
+# Identify all peaks in the filtered_dat dataframe
+all_peaks, _ = sci.signal.find_peaks(filtered_dat['qPCR'], height=threshold, distance=2)
+
+# Create a new dataframe to store the peaks
+peaks_df = filtered_dat.iloc[all_peaks].copy()
+
+# Print the peaks dataframe
+print(peaks_df)
+
+
