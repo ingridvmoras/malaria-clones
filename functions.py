@@ -1,8 +1,9 @@
 
+from matplotlib import pyplot as plt
 import numpy as np
 import scipy.signal as sig
 import pandas as pd
-
+import seaborn as sns
 
 from detecta import detect_peaks
 
@@ -64,7 +65,7 @@ def find_peaks_dx(df, col):
     return pd.DataFrame(results)
 
 
-def find_peaks_and_create_df(df, col, lod, num_std=1):
+def find_peaks_lm(df, col, lod, num_std=1):
     """
     Finds peaks in a DataFrame column and creates a new DataFrame with the peak information.
     Parameters:
@@ -84,7 +85,7 @@ def find_peaks_and_create_df(df, col, lod, num_std=1):
         threshold = max(lod, mean + num_std * std)
 
         # Encontrar los picos
-        peaks, _ = sig.find_peaks(group[col], height=3.70)
+        peaks, _ = sig.find_peaks(group[col], height=threshold)
         
         # Extract rows corresponding to the peak indices
         peak_rows = group.iloc[peaks]
@@ -94,7 +95,60 @@ def find_peaks_and_create_df(df, col, lod, num_std=1):
             results.append({
                 'Kid': kid,
                 'Timepoint': row['Timepoint'],
-                col: row[col]
+                col: row[col],
+                'Threshold': threshold
             })
 
     return pd.DataFrame(results)
+
+
+
+def plot_peaks_for_random_kids(data, peak_data, col, num_kids=10, random_state=42):
+    """
+    Plots the original data and detected peaks for a random selection of kids.
+
+    Args:
+        data (pd.DataFrame): The original DataFrame containing the data.
+        peak_data (pd.DataFrame): The DataFrame containing the detected peaks.
+        col (str): The column name to plot (e.g., 'qPCR').
+        num_kids (int): The number of random kids to plot.
+        random_state (int): The random state for reproducibility.
+    """
+    # Set seaborn style
+    sns.set_theme(style="whitegrid")
+
+    # Filter random kids
+    filter_kid = data['Kid'].drop_duplicates().sample(n=num_kids, random_state=random_state)
+
+    # Filter the peak data for the selected kids
+    filtered_peak = peak_data[peak_data['Kid'].isin(filter_kid)]
+    filtered_data = data[data['Kid'].isin(filter_kid)]
+
+    
+    palette = sns.color_palette("tab10", num_kids)
+
+    # Plot the data
+    plt.figure(figsize=(12, 6))
+
+    # Plot the detected peaks
+    plt.scatter(filtered_peak['Timepoint'], filtered_peak[col], color='red', label='Detected Peaks', zorder=5)
+
+    # Plot the original data for each kid with different colors
+    for i, kid in enumerate(filter_kid):
+        kid_data = filtered_data[filtered_data['Kid'] == kid]
+        plt.plot(kid_data['Timepoint'], kid_data[col], marker='o', linestyle='-', color=palette[i], label=f'Kid {kid}', zorder=1)
+
+    plt.xlabel('Timepoint (weeks)')
+    plt.ylabel(f'Parasitemia (Log-transformed {col})')
+    plt.legend(title='Child', bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.title(f'Detected Peaks in {col} Data for Selected Kids')
+
+    plt.xticks(ticks=filtered_data['Timepoint'].unique())
+    plt.tight_layout()
+
+    plt.show()
+
+# Example usage
+# plot_peaks_for_random_kids(first_qpcr, peak_data_dxqpcr, 'qPCR')
+
+

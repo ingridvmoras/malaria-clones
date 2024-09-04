@@ -3,7 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy as sci
-import scipy.stats as stats
 from statannot import add_stat_annotation
 import functions as f
 
@@ -124,7 +123,7 @@ plt.show()
 
 
 
-##PEAK DETECTİON
+##PEAK DETECTION
 
 
 # Peak detection derivative-based method
@@ -133,8 +132,9 @@ peak_data_dxfc = f.find_peaks_dx(first_qpcr,'FoldChange')
 
 # Peak detection threshold-based method
 
+peaks_lm_qpcr= f.find_peaks_lm(first_qpcr,'qPCR',2)
+peaks_lm_qpcr2= f.find_peaks_lm(first_qpcr,'qPCR',2,2)
 
-
-
-#
+peaks_lm_fc= f.find_peaks_lm(first_qpcr,'FoldChange',0.02)
+peaks_lm_fc2= f.find_peaks_lm(first_qpcr,'FoldChange',0.02,2)
 
