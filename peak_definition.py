@@ -23,8 +23,10 @@ dat['Timepoint'] = pd.to_numeric(dat['Timepoint']) * t_units
 # Filter out May12 and May13 timepoints
 filtered_dat = dat[~dat['Timepoint'].isin([may_timepoint * t_units])].copy()
 
+filtered_dat['qPCR'] = filtered_dat['qPCR'].fillna(filtered_dat['qPCR'].mean())
+
 # Log transform qPCR counts for more normal distribution
-filtered_dat.loc[:, 'qPCR'] = np.log(filtered_dat['qPCR'])
+filtered_dat.loc[:, 'qPCR'] = np.log10(filtered_dat['qPCR'])
 
 # Select the first qPCR value for each timepoint per kid (it does not matter which one, 
 # since parasitemia is the same for each value in the same timepoint)
@@ -144,5 +146,7 @@ peaks_df = filtered_dat.iloc[all_peaks].copy()
 
 # Print the peaks dataframe
 print(peaks_df)
+
+
 
 
