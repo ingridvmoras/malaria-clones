@@ -68,7 +68,7 @@ filtered_dat = filtered_dat.merge(first_qpcr[['Kid', 'Timepoint', 'FoldChange','
 
 
 # Randomly choose 10 unique kids
-random_kids = first_qpcr['Kid'].drop_duplicates().sample(n=10, random_state=42)
+random_kids = first_qpcr['Kid'].drop_duplicates().sample(n=10, random_state=1)
 
 # Filter the data for the randomly chosen kids
 random_kids_data = first_qpcr[first_qpcr['Kid'].isin(random_kids)]
@@ -101,7 +101,7 @@ timepoints = sorted(first_qpcr['Timepoint'].unique())
 
 fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 12), sharex=True)
 
-palette = sns.color_palette("husl", len(timepoints))
+palette = sns.color_palette("Paired", len(timepoints))
 sns.boxplot(data=first_qpcr, x='Timepoint', y='FoldChange', hue='Timepoint', palette=palette, ax=axes[0],legend=False)
 axes[0].set_xlabel('')  # Remove x-axis label for the first plot
 axes[0].set_ylabel('Log2 Fold Change')
@@ -128,8 +128,6 @@ plt.show()
 
 # Peak detection threshold-based method
 
-peaks_lm_qpcr= f.find_peaks_lm(first_qpcr2,'qPCR',2)
-peaks_lm_qpcr2= f.find_peaks_lm(first_qpcr2,'qPCR',2,2)
 
 peaks_lm_fc= f.find_peaks_lm(first_qpcr,'FoldChange',0.02)
 peaks_lm_fc2= f.find_peaks_lm(first_qpcr,'FoldChange',0.02,2)
@@ -140,4 +138,36 @@ f.plot_peaks_for_random_kids(first_qpcr2, peaks_lm_qpcr2, 'qPCR')
 peak_data_toq1,peak_data_toq2= f.find_peaks_to(first_qpcr2,'qPCR',2)
 peak_data_tofc3,peak_data_tofc4= f.find_peaks_to(first_qpcr,'FoldChange',0.02)
 
+
+#GRAPH AND STATISTICS 
+
+peak_data_toq1['Method'] = 'topology'
+peaks_lm_qpcr['Method'] = 'local'
+
+# peaks detected by methods
+
+peaksto1= peak_data_toq1[peak_data_toq1['peak'] == True]
+peaksto2=peak_data_toq1[(peak_data_toq1['peak'] == True) &(peak_data_toq1['valley'] == False)]
+peaksto3=peak_data_toq1[(peak_data_toq1['peak'] == True) &(peak_data_toq1['valley'] == False) & (peak_data_toq1['qPCR']>=2)]
+
+
+f1=f.plot_peaks(peaksto1, peaks_lm_qpcr)
+f2=f.plot_peaks(peaksto2, peaks_lm_qpcr)
+f3=f.plot_peaks(peaksto3, peaks_lm_qpcr)
+
+
+
+
+f.plot_heatmap(f1)
+f.plot_heatmap(f2)
+f.plot_heatmap(f3)
+
+df= f.create_pivot_df(f3)
+filtered_df = df[df['identify_by'] == 'both'].rename(columns={'topology': 'qPCR'})
+
+f.plot_peaks_for_random_kids(first_qpcr2, filtered_df, 'qPCR')
+
+
+
+#Peaks 
 

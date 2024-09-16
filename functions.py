@@ -5,8 +5,8 @@ import scipy.signal as sig
 import pandas as pd
 import seaborn as sns
 from findpeaks import findpeaks
-
-from detecta import detect_peaks
+from matplotlib.colors import ListedColormap
+from matplotlib.backends.backend_pdf import PdfPages
 
 def rollavg_convolve(a, n):
     'scipy.convolve'
@@ -132,7 +132,7 @@ def plot_peaks_for_random_kids(data, peak_data, col, num_kids=10, random_state=1
     plt.figure(figsize=(12, 6))
 
     # Plot the detected peaks
-    plt.scatter(filtered_peak['Timepoint'], filtered_peak[col], color='black', label='Detected Peaks', zorder=5)
+    plt.scatter(filtered_peak['Timepoint'], filtered_peak[col], color='red', label='Detected Peaks', zorder=5)
 
     # Plot the original data for each kid with different colors
     for i, kid in enumerate(filter_kid):
@@ -167,42 +167,133 @@ def find_peaks_to(df, col, lod, num_std=1):
     
     results1 = []
     results2 = []
+    
+    #with PdfPages('peaks_plots.pdf') as pdf:
     for kid, group in df.groupby('Kid'):
-        if group is None or group.empty:
-           continue
-        
-        # Calculate the threshold, considering the LOD and standard deviation
-        #mean = group[col].mean()
-        #std = group[col].std()
-        #threshold = max(lod, mean + num_std * std)
+            if (group is None) or (group.empty) or (len(group) == 1):
+                continue
+            
+            # Use findpeaks to detect peaks
+            fp = findpeaks(method='topology', lookahead=1)
+            peaks = fp.peaks1d(X=group[col], method='topology')
+               
+            # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
+            # ax1, ax2 = fp.plot_persistence(figsize=(20, 8), fontsize_ax1=14, fontsize_ax2=14, xlabel='x-axis', ylabel='y-axis')
+            # fig.suptitle(f'Persistence Plot for Kid {kid}')
+            # pdf.savefig(fig)
+            # plt.close(fig)
 
-        # Use findpeaks to detect peaks
-        fp = findpeaks(method='topology')
-        
-        
-        peaks = fp.peaks1d(X=group[col], x=np.arange(2, len(group) * 2 + 1, 2), method='topology')
-
-        if peaks is None or 'df' not in peaks or peaks['df'] is None:
-           continue
-
-        # Add the Kid column to peaks['df']
-        peaks['df']['Kid'] = kid
-        
-        # Rename the 'x' column to 'Timepoint'
-        peaks['df'].rename(columns={'x': 'Timepoint', 'y': col}, inplace=True)
-
-        # Ensure 'peak' column is boolean
-        peaks['df']['peak'] = peaks['df']['peak'].astype(bool)
-
-        # Filter the rows where 'qPCR' is above the threshold or 'peak' is True
-        peaks2 = peaks['df'][(peaks['df'][col] >= 2) & (peaks['df']['peak'] == True)]
-
-        # Append the DataFrame to the results list
-        results1.append(peaks['df'])
-        results2.append(peaks2)
-
+            if (peaks is None) or ('df' not in peaks) or (peaks['df'] is None) or (len(peaks['df']) == 0):
+                continue
+            
+            peaks['df'].rename(columns={'y': col}, inplace=True)
+            peaks['df']['Timepoint'] = group['Timepoint'].values
+            peaks['df']['Kid'] = kid
+            
+            # Ensure 'peak' column is boolean
+            peaks['df']['peak'] = peaks['df']['peak'].astype(bool)
+            
+            # Filter the rows where 'qPCR' is above the threshold or 'peak' is True
+            peaks2 = peaks['df'][(peaks['df'][col] >= 2) & (peaks['df']['peak'] == True)]
+            
+            # Append the DataFrame to the results list
+            results1.append(peaks['df'])
+            results2.append(peaks2)
+         
+    
     # Concatenate all DataFrames in the results list into a single DataFrame
     final_df1 = pd.concat(results1, ignore_index=True)
     final_df2 = pd.concat(results2, ignore_index=True)
 
     return final_df1, final_df2
+
+def plot_peaks(peaks, peaks_lm_qpcr):
+    """
+    Function to generate a bar plot showing the number of peaks by method and timepoint.
+    
+    Parameters:
+    peaksto1 (DataFrame): DataFrame containing peak data for the 'topology' method.
+    peaks_lm_qpcr (DataFrame): DataFrame containing peak data for the 'local' method.
+    """
+    sns.set_theme(style="ticks")
+    merged_df = pd.concat([peaks, peaks_lm_qpcr], ignore_index=True)
+
+    final_df = merged_df[['Kid', 'Method', 'qPCR', 'Timepoint']]
+    print(final_df)
+
+    grouped_df = final_df.groupby(['Method', 'Timepoint']).size().reset_index(name='NumberOfPeaks')
+    timepoint_order = sorted(grouped_df['Timepoint'].unique())  # Sort the Timepoints
+    method_order = ['topology', 'local']  
+    
+    
+    plt.figure(figsize=(12, 8))
+    ax = sns.barplot(data=grouped_df, x='Timepoint', y='NumberOfPeaks', hue='Method', palette= 'Paired', order=timepoint_order, hue_order=method_order)
+    ax.set_xlabel('Timepoint (weeks)', fontsize=14)
+    ax.set_ylabel('Number of Peaks', fontsize=14)
+    plt.xticks(rotation=90, fontsize=12)
+    plt.yticks(fontsize=12)
+    sns.despine(offset=10, trim=True)
+    plt.tight_layout()
+    plt.show()
+    
+    return final_df
+
+
+
+def create_pivot_df(final_df):
+    """
+    Function to create a pivot DataFrame with 'identify_by' column.
+    
+    Parameters:
+    final_df (DataFrame): DataFrame containing the columns 'Kid', 'Method', 'qPCR', and 'Timepoint'.
+    
+    Returns:
+    DataFrame: A DataFrame with 'Kid', 'Timepoint', and 'identify_by' columns.
+    """
+    pivot_df = final_df.pivot_table(index=['Kid', 'Timepoint'], columns='Method', values='qPCR', aggfunc='first')
+    pivot_df['identify_by'] = pivot_df.apply(lambda row: 'both' if pd.notna(row['topology']) and pd.notna(row['local']) else ('topology' if pd.notna(row['topology']) else 'local'), axis=1)
+    pivot_df = pivot_df.reset_index()
+    
+    return pivot_df
+
+
+
+def plot_heatmap(final_df):
+    """
+    Function to generate a heatmap showing the identify_by values for each Kid and Timepoint.
+    
+    Parameters:
+    final_df (DataFrame): DataFrame containing the columns 'Kid', 'Method', 'qPCR', and 'Timepoint'.
+    """
+    pivot_df = create_pivot_df(final_df)
+    identify_by_mapping = {'topology': 0, 'local': 1, 'both': 2}
+    pivot_df['identify_by_num'] = pivot_df['identify_by'].map(identify_by_mapping)
+    heatmap_data = pivot_df.pivot(index='Kid', columns='Timepoint', values='identify_by_num')
+    cmap = sns.color_palette("Paired", as_cmap=True)
+    plt.figure(figsize=(20, 18))
+    ax = sns.heatmap(heatmap_data, cmap=cmap, linewidths=.2, linecolor='gray', cbar=True, annot=False, fmt='')
+
+    plt.ylabel('Kids', fontsize=16)
+    plt.xlabel('Timepoint (weeks)', fontsize=16)
+    plt.xticks(fontsize=12)
+    plt.yticks(rotation=360, fontsize=12)
+    plt.grid(False)
+
+    plt.tight_layout()
+    plt.show()
+    
+def plot_levels(df,col):
+    heatmap_data = df.pivot(index='Kid', columns='Timepoint', values= col)
+    
+    cmap = sns.color_palette("ch:start=.2,rot=-.3", as_cmap=True)
+    plt.figure(figsize=(20, 18))
+    ax = sns.heatmap(heatmap_data, cmap=cmap, linewidths=.2, linecolor='gray', cbar_kws={'label': col })
+    
+    plt.ylabel('Kids', fontsize=16)
+    plt.xlabel('Timepoint (weeks)', fontsize=16)
+    plt.xticks(fontsize=12)
+    plt.yticks(rotation=360, fontsize=12)
+    plt.grid(False)
+    
+    plt.tight_layout()
+    plt.show() 
