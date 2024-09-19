@@ -237,7 +237,7 @@ def plot_heatmap(final_df):
     identify_by_mapping = {'topology': 0, 'local': 1, 'both': 2}
     pivot_df['identify_by_num'] = pivot_df['identify_by'].map(identify_by_mapping)
     heatmap_data = pivot_df.pivot(index='Kid', columns='Timepoint', values='identify_by_num')
-    cmap = sns.color_palette("Set2_r", as_cmap=True)
+    cmap = sns.color_palette(['#fcdc4c','#de79f2','#f55953'],, as_cmap=True)
     plt.figure(figsize=(12, 8))
     ax = sns.heatmap(heatmap_data, cmap=cmap, linewidths=.2, linecolor='gray', cbar=True, annot=False, fmt='')
 
