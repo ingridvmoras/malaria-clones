@@ -101,17 +101,22 @@ timepoints = sorted(first_qpcr['Timepoint'].unique())
 
 fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 12), sharex=True)
 
-palette = sns.color_palette("Paired", len(timepoints))
-sns.boxplot(data=first_qpcr, x='Timepoint', y='FoldChange', hue='Timepoint', palette=palette, ax=axes[0],legend=False)
+palette = sns.color_palette('CMRmap', len(timepoints))
+sns.boxplot(
+    data=first_qpcr, x='Timepoint', y='FoldChange', hue='Timepoint', palette=palette, ax=axes[0], legend=False,
+    boxprops=dict(alpha=0.7)  # Adjust the transparency here
+)
 axes[0].set_xlabel('')  # Remove x-axis label for the first plot
-axes[0].set_ylabel('Log2 Fold Change')
+axes[0].set_ylabel('Log2 Fold Change', fontsize=20)
 
-sns.boxplot(data=first_qpcr, x='Timepoint', y='qPCR', hue='Timepoint', palette=palette, ax=axes[1],legend=False)
-axes[1].set_xlabel('Timepoint (weeks)')
-axes[1].set_ylabel('Parasitemia (Log-transformed qPCR)')
+# Boxplot for qPCR
+sns.boxplot(
+    data=first_qpcr, x='Timepoint', y='qPCR', hue='Timepoint', palette=palette, ax=axes[1], legend=False,
+    boxprops=dict(alpha=0.7)  # Adjust the transparency here
+)
+axes[1].set_xlabel('Timepoint (weeks)', fontsize=20)
+axes[1].set_ylabel('Parasitemia (Log-transformed qPCR)',fontsize=20)
 
-axes[1].set_xticks(range(len(timepoints)))
-axes[1].set_xticklabels(timepoints)
 
 plt.tight_layout()
 plt.show()
@@ -128,9 +133,12 @@ plt.show()
 
 # Peak detection threshold-based method
 
+#Think how to incorporate fold change in the threshold method for qPCR
 
-peaks_lm_fc= f.find_peaks_lm(first_qpcr,'FoldChange',0.02)
-peaks_lm_fc2= f.find_peaks_lm(first_qpcr,'FoldChange',0.02,2)
+peaks_lm_fc= f.find_peaks_lm(first_qpcr,'FoldChange',0.02) #0.02 is the threshold
+peaks_lm_fc2= f.find_peaks_lm(first_qpcr,'FoldChange',0.02,2) #0.02 is the threshold and 2 is the window size of standard deviation
+peaks_lm_qpcr= f.find_peaks_lm(first_qpcr2,'qPCR',2) #2 is the threshold
+peaks_lm_qpcr2= f.find_peaks_lm(first_qpcr2,'qPCR',2,2) #2 is the threshold and 2 is the window size of standard deviation	
 
 f.plot_peaks_for_random_kids(first_qpcr2, peaks_lm_qpcr2, 'qPCR')
 
@@ -142,32 +150,67 @@ peak_data_tofc3,peak_data_tofc4= f.find_peaks_to(first_qpcr,'FoldChange',0.02)
 #GRAPH AND STATISTICS 
 
 peak_data_toq1['Method'] = 'topology'
+peak_data_toq2['Method'] = 'topology'
 peaks_lm_qpcr['Method'] = 'local'
 
 # peaks detected by methods
 
 peaksto1= peak_data_toq1[peak_data_toq1['peak'] == True]
-peaksto2=peak_data_toq1[(peak_data_toq1['peak'] == True) &(peak_data_toq1['valley'] == False)]
-peaksto3=peak_data_toq1[(peak_data_toq1['peak'] == True) &(peak_data_toq1['valley'] == False) & (peak_data_toq1['qPCR']>=2)]
 
 
-f1=f.plot_peaks(peaksto1, peaks_lm_qpcr)
-f2=f.plot_peaks(peaksto2, peaks_lm_qpcr)
-f3=f.plot_peaks(peaksto3, peaks_lm_qpcr)
-
-
+f1=f.mergedf(peaksto1, peaks_lm_qpcr)
+f2=f.mergedf(peak_data_toq2, peaks_lm_qpcr)
 
 
 f.plot_heatmap(f1)
 f.plot_heatmap(f2)
-f.plot_heatmap(f3)
 
-df= f.create_pivot_df(f3)
-filtered_df = df[df['identify_by'] == 'both'].rename(columns={'topology': 'qPCR'})
+
+df= f.create_pivot_df(f2)
+filtered_df = df[df['identify_by'] == 'topology'].rename(columns={'topology': 'qPCR'})
 
 f.plot_peaks_for_random_kids(first_qpcr2, filtered_df, 'qPCR')
 
 
 
-#Peaks 
+peaks_lm_qpcr['Data'] = 'qPCR'
+peaks_lm_qpcr2['Data'] = 'qPCR'
+peaks_lm_fc2['Data'] = 'FoldChange'
+peaks_lm_fc['Data'] = 'FoldChange' 
+
+peaks_lm_qpcr['Criteria'] = 'SD+M'
+peaks_lm_qpcr2['Criteria'] = '2SD+M'
+peaks_lm_fc['Criteria'] = 'SD+M'
+peaks_lm_fc2['Criteria'] = '2SD+M'
+
+combined_df = pd.concat([peaks_lm_qpcr, peaks_lm_qpcr2,peaks_lm_fc, peaks_lm_fc2])
+
+sns.set_style("ticks")
+g = sns.catplot(
+    data=combined_df, kind="swarm",
+    x="Criteria", y="Threshold", hue="Criteria", col="Data",
+    aspect=.5, palette='CMRmap'
+)
+
+
+for ax in g.axes.flat:
+    sns.boxplot(
+        x='Criteria', y='Threshold', data=combined_df[combined_df['Data'] == ax.get_title().split(' = ')[1]],
+        ax=ax, color='gray', fliersize=0, linewidth=1,
+        boxprops=dict(facecolor='none', edgecolor='gray'),
+        whiskerprops=dict(color='gray'),
+        capprops=dict(color='gray'),
+        medianprops=dict(color='gray')
+    )
+    for label in ax.get_xticklabels():
+        label.set_rotation(45)
+    ax.set_xlabel('')  
+
+g.set_axis_labels("", "Threshold")
+g.set_titles("{col_name}")
+
+
+plt.tight_layout()
+plt.show()
+
 

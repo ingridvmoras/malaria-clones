@@ -4,6 +4,7 @@ import numpy as np
 import scipy.signal as sig
 import pandas as pd
 import seaborn as sns
+import seaborn.objects as so
 from findpeaks import findpeaks
 from matplotlib.colors import ListedColormap
 from matplotlib.backends.backend_pdf import PdfPages
@@ -16,54 +17,6 @@ def rollavg_convolve(a, n):
     convolved = sig.convolve(a, np.ones(n, dtype='float') / n, 'same')
     pad_size = n // 2
     return np.pad(convolved[pad_size:-pad_size], (pad_size, pad_size), mode='edge')
-
-
-# def find_peaks_dx(df, col):
-#     """
-#     Detects peaks in parasitemia data based on derivatives.
-
-#     Args:
-#         df: A pandas DataFrame containing the parasitemia data.
-#         col: The column name to detect peaks in.
-
-#     Returns:
-#         A pandas DataFrame containing the peak information for each child.
-#     """
-
-#     # Group by child
-#     grouped_data = df.groupby('Kid')
-
-#     # Calculate derivatives and identify peaks for each child
-#     results = []
-#     for kid, group in grouped_data:
-#         if len(group) < 2:
-#             continue  # Skip groups with less than 2 elements
-
-#         # Calculate first derivative
-#         first_derivative = np.gradient(group[col])
-
-#         # Calculate second derivative
-#         second_derivative = np.gradient(first_derivative)
-
-#         # Identify peaks where first derivative changes sign and second derivative is negative
-#         peaks = np.where(np.diff(np.sign(first_derivative)) == -2)[0] + 1
-#         peaks = peaks[second_derivative[peaks] < 0]
-
-#         if len(peaks) == 0:
-#             continue  # Skip if no peaks are found
-
-#         # Extract rows corresponding to the peak indices
-#         peak_rows = group.iloc[peaks]
-
-#         # Append the results with Kid, Timepoint, and qPCR
-#         for _, row in peak_rows.iterrows():
-#             results.append({
-#                 'Kid': kid,
-#                 'Timepoint': row['Timepoint'],
-#                 col: row[col]
-#             })
-
-#     return pd.DataFrame(results)
 
 
 def find_peaks_lm(df, col, lod, num_std=1):
@@ -193,8 +146,8 @@ def find_peaks_to(df, col, lod, num_std=1):
             # Ensure 'peak' column is boolean
             peaks['df']['peak'] = peaks['df']['peak'].astype(bool)
             
-            # Filter the rows where 'qPCR' is above the threshold or 'peak' is True
-            peaks2 = peaks['df'][(peaks['df'][col] >= 2) & (peaks['df']['peak'] == True)]
+            # Filter the rows where 'qPCR' is above the threshold and 'peak' is True
+            peaks2 = peaks['df'][(peaks['df'][col] >= 2) & (peaks['df']['peak'] == True) &(peaks['df']['valley'] == False)]
             
             # Append the DataFrame to the results list
             results1.append(peaks['df'])
@@ -207,36 +160,51 @@ def find_peaks_to(df, col, lod, num_std=1):
 
     return final_df1, final_df2
 
-def plot_peaks(peaks, peaks_lm_qpcr):
-    """
-    Function to generate a bar plot showing the number of peaks by method and timepoint.
-    
-    Parameters:
-    peaksto1 (DataFrame): DataFrame containing peak data for the 'topology' method.
-    peaks_lm_qpcr (DataFrame): DataFrame containing peak data for the 'local' method.
-    """
-    sns.set_theme(style="ticks")
-    merged_df = pd.concat([peaks, peaks_lm_qpcr], ignore_index=True)
-
+def mergedf(df1, df2):
+    merged_df = pd.concat([df1, df2], ignore_index=True)
     final_df = merged_df[['Kid', 'Method', 'qPCR', 'Timepoint']]
     print(final_df)
-
-    grouped_df = final_df.groupby(['Method', 'Timepoint']).size().reset_index(name='NumberOfPeaks')
-    timepoint_order = sorted(grouped_df['Timepoint'].unique())  # Sort the Timepoints
-    method_order = ['topology', 'local']  
-    
-    
-    plt.figure(figsize=(12, 8))
-    ax = sns.barplot(data=grouped_df, x='Timepoint', y='NumberOfPeaks', hue='Method', palette= 'Paired', order=timepoint_order, hue_order=method_order)
-    ax.set_xlabel('Timepoint (weeks)', fontsize=14)
-    ax.set_ylabel('Number of Peaks', fontsize=14)
-    plt.xticks(rotation=90, fontsize=12)
-    plt.yticks(fontsize=12)
-    sns.despine(offset=10, trim=True)
-    plt.tight_layout()
-    plt.show()
-    
     return final_df
+
+
+
+def plot_peaks(data):
+    """
+    Function to generate a percentage stacked bar plot showing the number of peaks by method and timepoint.
+    
+    Parameters:
+    data (DataFrame): DataFrame containing peak data with columns 'Kid', 'Timepoint', 'local', 'topology', 'identify_by'.
+    """
+    sns.set_theme(style="ticks")
+    grouped_df = data.groupby(['Timepoint', 'identify_by']).size().reset_index(name='NumberOfPeaks')
+    total_peaks_df = grouped_df.groupby('Timepoint')['NumberOfPeaks'].sum().reset_index(name='TotalPeaks')
+
+    merged_grouped_df = pd.merge(grouped_df, total_peaks_df, on='Timepoint')
+    merged_grouped_df['Percentage'] = (merged_grouped_df['NumberOfPeaks'] / merged_grouped_df['TotalPeaks']) * 100
+
+    pivot_df = merged_grouped_df.pivot(index='Timepoint', columns='identify_by', values='Percentage').fillna(0).reset_index()
+    melted_df = pivot_df.melt(id_vars='Timepoint', value_vars=['topology', 'local', 'both'], var_name='Method', value_name='Percentage')
+    plt.figure(figsize=(14, 14))
+
+    plot = (
+        so.Plot(melted_df, x="Timepoint", y="Percentage", color="Method")
+        .add(so.Bar(), so.Stack())
+        .scale(color="Set2_r")
+        .label(x="Timepoint (weeks)", y="Percentage (%)")
+        .limit(x=(3, 23), y=(0, 100))  # Adjust the limits to ensure full bars are visible
+    )
+
+    fig, ax = plt.subplots()
+    plot.on(ax).plot()
+
+    
+    ax.set_xticks(range(4, 23, 2))
+
+    handles, labels = ax.get_legend_handles_labels()
+    plt.legend(handles[2:], loc=10, bbox_to_anchor=(0.5, -0.25), ncol=2, frameon=False, fontsize=14)
+
+    plt.show()
+
 
 
 
@@ -269,8 +237,8 @@ def plot_heatmap(final_df):
     identify_by_mapping = {'topology': 0, 'local': 1, 'both': 2}
     pivot_df['identify_by_num'] = pivot_df['identify_by'].map(identify_by_mapping)
     heatmap_data = pivot_df.pivot(index='Kid', columns='Timepoint', values='identify_by_num')
-    cmap = sns.color_palette("Paired", as_cmap=True)
-    plt.figure(figsize=(20, 18))
+    cmap = sns.color_palette("Set2_r", as_cmap=True)
+    plt.figure(figsize=(12, 8))
     ax = sns.heatmap(heatmap_data, cmap=cmap, linewidths=.2, linecolor='gray', cbar=True, annot=False, fmt='')
 
     plt.ylabel('Kids', fontsize=16)
@@ -282,18 +250,21 @@ def plot_heatmap(final_df):
     plt.tight_layout()
     plt.show()
     
-def plot_levels(df,col):
-    heatmap_data = df.pivot(index='Kid', columns='Timepoint', values= col)
+def plot_levels(df, col):
+    heatmap_data = df.pivot(index='Kid', columns='Timepoint', values=col)
     
-    cmap = sns.color_palette("ch:start=.2,rot=-.3", as_cmap=True)
-    plt.figure(figsize=(20, 18))
-    ax = sns.heatmap(heatmap_data, cmap=cmap, linewidths=.2, linecolor='gray', cbar_kws={'label': col })
+    cmap = sns.color_palette("mako", as_cmap=True).reversed()
+    plt.figure(figsize=(12, 8))
+    ax = sns.heatmap(
+        heatmap_data, cmap=cmap, linewidths=.05, linecolor='gray',  # Ajustar el grosor de las líneas de la cuadrícula
+        cbar_kws={'label': col, 'shrink': 0.5}  # Ajustar el tamaño de la barra de color
+    )
     
-    plt.ylabel('Kids', fontsize=16)
-    plt.xlabel('Timepoint (weeks)', fontsize=16)
+    plt.ylabel('Kids', fontsize=20)
+    plt.xlabel('Timepoint (weeks)', fontsize=20)
     plt.xticks(fontsize=12)
     plt.yticks(rotation=360, fontsize=12)
     plt.grid(False)
     
     plt.tight_layout()
-    plt.show() 
+    plt.show()
