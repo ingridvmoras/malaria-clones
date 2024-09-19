@@ -129,7 +129,7 @@ def find_peaks_to(df, col, lod, num_std=1):
             # Use findpeaks to detect peaks
             fp = findpeaks(method='topology', lookahead=1)
             peaks = fp.peaks1d(X=group[col], method='topology')
-            fp.plot_persistance()
+            fp.plot_persistence(figsize=(20, 8), fontsize_ax1=14, fontsize_ax2=14, xlabel='x-axis', ylabel='qP')
             # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
             # ax1, ax2 = fp.plot_persistence(figsize=(20, 8), fontsize_ax1=14, fontsize_ax2=14, xlabel='x-axis', ylabel='y-axis')
             # fig.suptitle(f'Persistence Plot for Kid {kid}')
@@ -162,9 +162,9 @@ def find_peaks_to(df, col, lod, num_std=1):
 
 def mergedf(df1, df2):
     merged_df = pd.concat([df1, df2], ignore_index=True)
-    final_df = merged_df[['Kid', 'Method', 'qPCR', 'Timepoint']]
-    print(final_df)
-    return final_df
+    df = merged_df[['Kid', 'Method', 'qPCR', 'Timepoint']]
+
+    return df
 
 
 
@@ -221,7 +221,7 @@ def create_pivot_df(final_df):
     pivot_df = final_df.pivot_table(index=['Kid', 'Timepoint'], columns='Method', values='qPCR', aggfunc='first')
     pivot_df['identify_by'] = pivot_df.apply(lambda row: 'both' if pd.notna(row['topology']) and pd.notna(row['local']) else ('topology' if pd.notna(row['topology']) else 'local'), axis=1)
     pivot_df = pivot_df.reset_index()
-    
+    pivot_df['qPCR'] = pivot_df.apply(lambda row: row['local'] if pd.notna(row['local']) else row['topology'], axis=1)
     return pivot_df
 
 
@@ -269,46 +269,4 @@ def plot_levels(df, col):
     plt.tight_layout()
     plt.show()
     
-  
-# Assuming df and first_qpcr are already defined
-kids_peaks = first_qpcr[first_qpcr['Kid'].isin(df['Kid'])]
 
-# # Create a PDF document to save the plots
-# with PdfPages('kids_peaks_plots.pdf') as pdf:
-#     for kid in df['Kid'].unique():
-#         kid_data = kids_peaks[kids_peaks['Kid'] == kid]
-#         kid_df = df[df['Kid'] == kid]
-
-#         plt.figure()  # A4 size in inches
-        
-#         # Scatter plot for 'both'
-#         both_data = kid_df[kid_df['identify_by'] == 'both']
-#         if not both_data.empty:
-#             plt.scatter(both_data['Timepoint'], both_data['qPCR'], color='red', label='Both', zorder=3)
-
-#         # Scatter plot for 'topology'
-#         topology_data = kid_df[kid_df['identify_by'] == 'topology']
-#         if not topology_data.empty:
-#             plt.scatter(topology_data['Timepoint'], topology_data['qPCR'], color='blue', label='Topology', zorder=3)
-
-#         # Scatter plot for 'local'
-#         local_data = kid_df[kid_df['identify_by'] == 'local']
-#         if not local_data.empty:
-#             plt.scatter(local_data['Timepoint'], local_data['qPCR'], color='green', label='Local', zorder=3)
-
-#         # Plot the line plot for the kid
-#         plt.plot(kid_data['Timepoint'], kid_data['qPCR'], marker='o', linestyle='-', color='black', label=f'Kid {kid}', zorder=1)
-        
-#         plt.xlabel('Timepoint (weeks)')
-#         plt.ylabel('Parasitemia (Log-transformed qPCR)')
-#         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-#         plt.title(f'Kid {kid}')
-        
-#         # Adjust layout to fit the page
-#         plt.tight_layout()
-        
-#         # Save the current figure to the PDF
-#         pdf.savefig()
-#         plt.close()
-
-# print("Plots saved to kids_peaks_plots.pdf")

@@ -10,7 +10,7 @@ sns.set_style("white")
 sns.set_context("talk")
 
 # Load the data
-dat = pd.read_csv('dataset_Kalifabougou.csv',index_col=0)
+dat = pd.read_csv('..\data\dataset_Kalifabougou.csv',index_col=0)
 
 # Replace May12 and May13 timepoints with may_timepoint
 may_timepoint = 22
@@ -143,10 +143,6 @@ f.plot_heatmap(f2)
 
 
 df= f.create_pivot_df(f2)
-filtered_df = df[df['identify_by'] == 'topology'].rename(columns={'topology': 'qPCR'})
-
-f.plot_peaks_for_random_kids(first_qpcr2, filtered_df, 'qPCR')
-
 
 
 peaks_lm_qpcr['Data'] = 'qPCR'
@@ -188,5 +184,49 @@ g.set_titles("{col_name}")
 
 plt.tight_layout()
 plt.show()
+
+
+kids_peaks = first_qpcr2[first_qpcr2['Kid'].isin(df['Kid'])]
+from matplotlib.backends.backend_pdf import PdfPages
+
+# Create a PDF document to save the plots
+with PdfPages('..\outcome\kids_peaks_plots.pdf') as pdf:
+    for kid in df['Kid'].unique():
+        kid_data = kids_peaks[kids_peaks['Kid'] == kid]
+        kid_df = df[df['Kid'] == kid]
+
+        plt.figure()  # A4 size in inches
+        
+        # Scatter plot for 'both'
+        both_data = kid_df[kid_df['identify_by'] == 'both']
+        if not both_data.empty:
+            plt.scatter(both_data['Timepoint'], both_data['qPCR'], color='red', label='Both', zorder=3)
+
+        # Scatter plot for 'topology'
+        topology_data = kid_df[kid_df['identify_by'] == 'topology']
+        if not topology_data.empty:
+            plt.scatter(topology_data['Timepoint'], topology_data['qPCR'], color='blue', label='Topology', zorder=3)
+
+        # Scatter plot for 'local'
+        local_data = kid_df[kid_df['identify_by'] == 'local']
+        if not local_data.empty:
+            plt.scatter(local_data['Timepoint'], local_data['qPCR'], color='green', label='Local', zorder=3)
+
+        # Plot the line plot for the kid
+        plt.plot(kid_data['Timepoint'], kid_data['qPCR'], marker='o', linestyle='-', color='black', label=f'Kid {kid}', zorder=1)
+        
+        plt.xlabel('Timepoint (weeks)')
+        plt.ylabel('Parasitemia (Log-transformed qPCR)')
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.title(f'Kid {kid}')
+        
+        # Adjust layout to fit the page
+        plt.tight_layout()
+        
+        # Save the current figure to the PDF
+        pdf.savefig()
+        plt.close()
+
+print("Plots saved to kids_peaks_plots.pdf")
 
 
