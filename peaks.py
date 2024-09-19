@@ -67,34 +67,10 @@ filtered_dat = filtered_dat.merge(first_qpcr[['Kid', 'Timepoint', 'FoldChange','
 
 
 
-# Randomly choose 10 unique kids
-random_kids = first_qpcr['Kid'].drop_duplicates().sample(n=10, random_state=1)
-
-# Filter the data for the randomly chosen kids
-random_kids_data = first_qpcr[first_qpcr['Kid'].isin(random_kids)]
-
-# Histogram for the randomly chosen kids
-plt.figure(figsize=(12, 6))
-for kid in random_kids:
-    kid_data = random_kids_data[random_kids_data['Kid'] == kid]
-    plt.plot(kid_data['Timepoint'], kid_data['qPCR'], marker='o', linestyle='-', label=f'Kid {kid}')
-
-plt.xlabel('Timepoint (weeks)')
-plt.ylabel('Parasitemia (Log-transformed qPCR)')
-plt.legend(title='Child', bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.show()
 
 
-# Plot the histogram for the randomly chosen kids
-plt.figure(figsize=(12, 6))
-for kid in random_kids:
-    kid_data = random_kids_data[random_kids_data['Kid'] == kid]
-    plt.plot(kid_data['Timepoint'], kid_data['FoldChange'], marker='o', linestyle='-', label=f'Kid {kid}')
 
-plt.xlabel('Timepoint (weeks)')
-plt.ylabel('Fold Change')
-plt.legend(title='Child', bbox_to_anchor=(1.05, 1), loc='upper left')
-plt.show()
+
 
 #Average and Standard Deviation of FoldChange at Each Timepoint
 timepoints = sorted(first_qpcr['Timepoint'].unique())
