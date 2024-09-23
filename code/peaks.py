@@ -10,7 +10,7 @@ sns.set_style("white")
 sns.set_context("talk")
 
 # Load the data
-dat = pd.read_csv('..\data\dataset_Kalifabougou.csv',index_col=0)
+dat = pd.read_csv('..\\data\dataset_Kalifabougou.csv',index_col=0)
 
 # Replace May12 and May13 timepoints with may_timepoint
 may_timepoint = 22
