@@ -2,6 +2,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import scipy.signal as sig
+from scipy.signal import find_peaks, peak_prominences
 import pandas as pd
 import seaborn as sns
 import seaborn.objects as so
@@ -33,27 +34,26 @@ def find_peaks_lm(df, col, lod, num_std=1):
     
     results = []
     for kid, group in df.groupby('Kid'):
-        # Calcular el umbral, considerando el LOD y la desviación estándar
         mean = group[col].mean()
         std = group[col].std()
         threshold = max(lod, mean + num_std * std)
-
-        # Encontrar los picos
-        peaks, _ = sig.find_peaks(group[col], height=threshold)
         
-        # Extract rows corresponding to the peak indices
+        peaks, properties = sig.find_peaks(group[col], height=threshold,prominence=1,wlen=3)
         peak_rows = group.iloc[peaks]
         
-        # Append the results with Kid, Timepoint, and qPCR
-        for _, row in peak_rows.iterrows():
+        for i, (idx, row_data) in enumerate(peak_rows.iterrows()):
             results.append({
                 'Kid': kid,
-                'Timepoint': row['Timepoint'],
-                col: row[col],
-                'Threshold': threshold
+                'Timepoint': row_data['Timepoint'],   
+                col: row_data[col],                  
+                'Threshold': threshold,              
+                'PeakHeight': properties['peak_heights'][i],  
+                'Prominence': properties['prominences'][i],  
+                'log2FoldChange': row_data['log2FoldChange'],  
             })
-
-    return pd.DataFrame(results)
+    results = pd.DataFrame(results)
+    results = results[results['log2FoldChange'] >= 1]
+    return results
 
 
 
@@ -93,7 +93,7 @@ def plot_peaks_for_random_kids(data, peak_data, col, num_kids=10, random_state=1
         plt.plot(kid_data['Timepoint'], kid_data[col], marker='o', linestyle='-', color=palette[i], label=f'Kid {kid}', zorder=1)
 
     plt.xlabel('Timepoint (weeks)')
-    plt.ylabel(f'Parasitemia (Log-transformed {col})')
+    plt.ylabel(f'Parasitemia ({col})')
     plt.legend(title='Child', bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.title(f'Detected Peaks in {col} Data for Selected Kids')
 
@@ -103,7 +103,7 @@ def plot_peaks_for_random_kids(data, peak_data, col, num_kids=10, random_state=1
     plt.show()
 
 # Example usage
-# plot_peaks_for_random_kids(first_qpcr, peak_data_dxqpcr, 'qPCR')
+# plot_peaks_for_random_kids(first_qpcr, peak_data_dxqpcr, 'log2_qPCR')
 
 
 def find_peaks_to(df, col, lod, num_std=1):
@@ -162,7 +162,7 @@ def find_peaks_to(df, col, lod, num_std=1):
 
 def mergedf(df1, df2):
     merged_df = pd.concat([df1, df2], ignore_index=True)
-    df = merged_df[['Kid', 'Method', 'qPCR', 'Timepoint']]
+    df = merged_df[['Kid', 'Method', 'log2_qPCR', 'Timepoint']]
 
     return df
 
@@ -213,15 +213,15 @@ def create_pivot_df(final_df):
     Function to create a pivot DataFrame with 'identify_by' column.
     
     Parameters:
-    final_df (DataFrame): DataFrame containing the columns 'Kid', 'Method', 'qPCR', and 'Timepoint'.
+    final_df (DataFrame): DataFrame containing the columns 'Kid', 'Method', 'log2_qPCR', and 'Timepoint'.
     
     Returns:
     DataFrame: A DataFrame with 'Kid', 'Timepoint', and 'identify_by' columns.
     """
-    pivot_df = final_df.pivot_table(index=['Kid', 'Timepoint'], columns='Method', values='qPCR', aggfunc='first')
+    pivot_df = final_df.pivot_table(index=['Kid', 'Timepoint'], columns='Method', values='log2_qPCR', aggfunc='first')
     pivot_df['identify_by'] = pivot_df.apply(lambda row: 'both' if pd.notna(row['topology']) and pd.notna(row['local']) else ('topology' if pd.notna(row['topology']) else 'local'), axis=1)
     pivot_df = pivot_df.reset_index()
-    pivot_df['qPCR'] = pivot_df.apply(lambda row: row['local'] if pd.notna(row['local']) else row['topology'], axis=1)
+    pivot_df['log2_qPCR'] = pivot_df.apply(lambda row: row['local'] if pd.notna(row['local']) else row['topology'], axis=1)
     return pivot_df
 
 
@@ -231,7 +231,7 @@ def plot_heatmap(final_df):
     Function to generate a heatmap showing the identify_by values for each Kid and Timepoint.
     
     Parameters:
-    final_df (DataFrame): DataFrame containing the columns 'Kid', 'Method', 'qPCR', and 'Timepoint'.
+    final_df (DataFrame): DataFrame containing the columns 'Kid', 'Method', 'log2_qPCR', and 'Timepoint'.
     """
     pivot_df = create_pivot_df(final_df)
     identify_by_mapping = {'topology': 0, 'local': 1, 'both': 2}
