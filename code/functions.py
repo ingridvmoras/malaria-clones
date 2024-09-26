@@ -20,42 +20,51 @@ def rollavg_convolve(a, n):
     return np.pad(convolved[pad_size:-pad_size], (pad_size, pad_size), mode='edge')
 
 
-def find_peaks_lm(df, col, lod, num_std=1):
-    """
-    Finds peaks in a DataFrame column and creates a new DataFrame with the peak information.
-    Parameters:
-    - df (pandas.DataFrame): The input DataFrame.
-    - col (str): The column name in the DataFrame to find peaks in.
-    - lod (float): The limit of detection for the peaks.
-    - num_std (int, optional): The number of standard deviations to consider when calculating the threshold. Default is 1.
-    Returns:
-    - pandas.DataFrame: A new DataFrame containing the peak information, with columns 'Kid', 'Timepoint', and the specified column name.
-    """
-    
+def find_peaks_lm(df, col, lod, opt):
     results = []
+    
     for kid, group in df.groupby('Kid'):
         mean = group[col].mean()
+        median = group[col].median()
+        q=group[col].quantile(0.75)
         std = group[col].std()
-        threshold = max(lod, mean + num_std * std)
-        
-        peaks, properties = sig.find_peaks(group[col], height=threshold,prominence=1,wlen=3)
+        if opt==1:
+            height = lod
+        elif opt==2:
+            height = max(lod, mean)
+        elif opt==3:
+            height = max(lod, median)
+        else:
+            height = max(lod, q)
+    
+        peaks, properties = sig.find_peaks(group[col], height=height, prominence=0, wlen=5, threshold=0.05)
         peak_rows = group.iloc[peaks]
         
         for i, (idx, row_data) in enumerate(peak_rows.iterrows()):
-            results.append({
+            result = {
                 'Kid': kid,
+                'height': height,
                 'Timepoint': row_data['Timepoint'],   
-                col: row_data[col],                  
-                'Threshold': threshold,              
+                col: row_data[col],              
                 'PeakHeight': properties['peak_heights'][i],  
                 'Prominence': properties['prominences'][i],  
-                'log2FoldChange': row_data['log2FoldChange'],  
-            })
-    results = pd.DataFrame(results)
-    results = results[results['log2FoldChange'] >= 1]
+                'log2FoldChange': row_data['log2FoldChange'],
+                'LeftBase': properties['left_bases'][i],
+                'RightBase': properties['right_bases'][i],
+                'LeftThreshold': properties['left_thresholds'][i],
+                'RightThreshold': properties['right_thresholds'][i]
+            }
+            if (row_data['log2FoldChange'] < 1) or (row_data['log2FoldChange'] < 1 and
+                row_data['log2FoldChange'] == result['Prominence'] and 
+                result['RightBase'] - result['LeftBase'] == 2) or (row_data['log2FoldChange'] < 1 and result['Prominence'] == result['RightThreshold']):
+                result['peak'] = False
+            else:
+                result['peak'] = True
+            
+            results.append(result)
+    
+    results = pd.DataFrame(results) 
     return results
-
-
 
 def plot_peaks_for_random_kids(data, peak_data, col, num_kids=10, random_state=1):
     """
@@ -106,7 +115,7 @@ def plot_peaks_for_random_kids(data, peak_data, col, num_kids=10, random_state=1
 # plot_peaks_for_random_kids(first_qpcr, peak_data_dxqpcr, 'log2_qPCR')
 
 
-def find_peaks_to(df, col, lod, num_std=1):
+def find_peaks_to(df, col, lod):
     """
     Finds peaks in a DataFrame column using findpeaks.stats.topology() and creates a new DataFrame with the peak information.
     Parameters:
@@ -147,7 +156,7 @@ def find_peaks_to(df, col, lod, num_std=1):
             peaks['df']['peak'] = peaks['df']['peak'].astype(bool)
             
             # Filter the rows where 'qPCR' is above the threshold and 'peak' is True
-            peaks2 = peaks['df'][(peaks['df'][col] >= 2) & (peaks['df']['peak'] == True) &(peaks['df']['valley'] == False)]
+            peaks2 = peaks['df'][(peaks['df'][col] >= lod) & (peaks['df']['peak'] == True) &(peaks['df']['valley'] == False)]
             
             # Append the DataFrame to the results list
             results1.append(peaks['df'])
@@ -162,7 +171,7 @@ def find_peaks_to(df, col, lod, num_std=1):
 
 def mergedf(df1, df2):
     merged_df = pd.concat([df1, df2], ignore_index=True)
-    df = merged_df[['Kid', 'Method', 'log2_qPCR', 'Timepoint']]
+    df = merged_df[['Kid', 'Method', 'log2_qPCR', 'Timepoint', 'peak']]	
 
     return df
 
@@ -210,18 +219,20 @@ def plot_peaks(data):
 
 def create_pivot_df(final_df):
     """
-    Function to create a pivot DataFrame with 'identify_by' column.
+    Function to create a pivot DataFrame with 'identify_by' column and preserve the 'peak' column.
     
     Parameters:
-    final_df (DataFrame): DataFrame containing the columns 'Kid', 'Method', 'log2_qPCR', and 'Timepoint'.
+    final_df (DataFrame): DataFrame containing the columns 'Kid', 'Method', 'log2_qPCR', 'Timepoint', and 'peak'.
     
     Returns:
-    DataFrame: A DataFrame with 'Kid', 'Timepoint', and 'identify_by' columns.
+    DataFrame: A DataFrame with 'Kid', 'Timepoint', 'identify_by', and 'peak' columns.
     """
-    pivot_df = final_df.pivot_table(index=['Kid', 'Timepoint'], columns='Method', values='log2_qPCR', aggfunc='first')
-    pivot_df['identify_by'] = pivot_df.apply(lambda row: 'both' if pd.notna(row['topology']) and pd.notna(row['local']) else ('topology' if pd.notna(row['topology']) else 'local'), axis=1)
+    pivot_df = final_df.pivot_table(index=['Kid', 'Timepoint'], columns='Method', values=['log2_qPCR', 'peak'], aggfunc='first')
+    pivot_df.columns = ['_'.join(col).strip() for col in pivot_df.columns.values]
+    pivot_df['identify_by'] = pivot_df.apply(lambda row: 'both' if pd.notna(row['log2_qPCR_topology']) and pd.notna(row['log2_qPCR_local']) else ('topology' if pd.notna(row['log2_qPCR_topology']) else 'local'), axis=1)
     pivot_df = pivot_df.reset_index()
-    pivot_df['log2_qPCR'] = pivot_df.apply(lambda row: row['local'] if pd.notna(row['local']) else row['topology'], axis=1)
+    pivot_df['log2_qPCR'] = pivot_df.apply(lambda row: row['log2_qPCR_local'] if pd.notna(row['log2_qPCR_local']) else row['log2_qPCR_topology'], axis=1)
+    pivot_df['peak'] = pivot_df.apply(lambda row: row['peak_local'] if pd.notna(row['peak_local']) else row['peak_topology'], axis=1)
     return pivot_df
 
 
@@ -239,7 +250,7 @@ def plot_heatmap(final_df):
     heatmap_data = pivot_df.pivot(index='Kid', columns='Timepoint', values='identify_by_num')
     cmap = sns.color_palette(['#fcdc4c','#de79f2','#f55953'], as_cmap=True)
     plt.figure(figsize=(12, 8))
-    ax = sns.heatmap(heatmap_data, cmap=cmap, linewidths=.2, linecolor='gray', cbar=True, annot=False, fmt='')
+    ax = sns.heatmap(heatmap_data, cmap=cmap, linewidths=.2, linecolor='gray', cbar=False, annot=False, fmt='')
 
     plt.ylabel('Kids', fontsize=16)
     plt.xlabel('Timepoint (weeks)', fontsize=16)
