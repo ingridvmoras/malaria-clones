@@ -5,16 +5,17 @@ import seaborn as sns
 import scipy as sci
 from statannot import add_stat_annotation
 import functions as f
+import os
 
 sns.set_style("white")
 sns.set_context("talk")
 
 # Load the data
-dat = pd.read_csv('..\\data\\dataset_Kalifabougou.csv',index_col=0)
+dat = pd.read_csv('..\\data\\dataset_Kalifabougou.csv')
 
 # Replace May12 and May13 timepoints with may_timepoint
 may_timepoint = 22
-dat = dat.replace('May13', may_timepoint, regex=True).replace('May12', may_timepoint, regex=True)
+dat = dat.replace('May13', may_timepoint, regex=True).replace('May12', 0, regex=True)
 
 # Convert Timepoint to numeric units of 1 week
 t_units = 2
@@ -247,3 +248,11 @@ print("kids_peaks_plots.pdf")
 
 
 #merged peaks data with filtered_dat
+
+peaks_set = set(zip(peaks_lm_qpcr['Kid'], peaks_lm_qpcr['Timepoint']))
+filtered_dat['is_peak'] = filtered_dat.apply(lambda row: (row['Kid'], row['Timepoint']) in peaks_set, axis=1)
+
+peaks_set = set(zip(peaks_lm_qpcr['Kid'], peaks_lm_qpcr['Timepoint']))
+dat['is_peak'] = dat.apply(lambda row: (row['Kid'], row['Timepoint']) in peaks_set, axis=1)
+
+dat.to_csv('..\\outcome\\peaks.csv', index=False)
