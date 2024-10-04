@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy as sci
 from statannot import add_stat_annotation
+import seaborn.objects as so
 import functions as f
 import os
 
@@ -11,7 +12,7 @@ sns.set_style("white")
 sns.set_context("talk")
 
 # Load the data
-dat = pd.read_csv('..\\data\\dataset_Kalifabougou.csv')
+dat = pd.read_csv('N:\Mora\malaria-clones\data\dataset_Kalifabougou.csv')
 
 # Replace May12 and May13 timepoints with may_timepoint
 may_timepoint = 22
@@ -79,15 +80,15 @@ fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 12), sharex=True)
 palette = sns.color_palette('CMRmap', len(timepoints))
 sns.boxplot(
     data=first_qpcr, x='Timepoint', y='log2FoldChange', hue='Timepoint', palette=palette, ax=axes[0], legend=False,
-    boxprops=dict(alpha=0.7)  # Adjust the transparency here
+    boxprops=dict(alpha=0.7)  
 )
-axes[0].set_xlabel('')  # Remove x-axis label for the first plot
+axes[0].set_xlabel('')
 axes[0].set_ylabel('Log2 Fold Change', fontsize=20)
 
 # Boxplot for qPCR
 sns.boxplot(
     data=first_qpcr, x='Timepoint', y='log2_qPCR', hue='Timepoint', palette=palette, ax=axes[1], legend=False,
-    boxprops=dict(alpha=0.7)  # Adjust the transparency here
+    boxprops=dict(alpha=0.7)  
 )
 axes[1].set_xlabel('Timepoint (weeks)', fontsize=20)
 axes[1].set_ylabel('Parasitemia (Log2-transformed qPCR)',fontsize=20)
@@ -102,14 +103,6 @@ plt.show()
 ##PEAK DETECTION
 
 
-# Peak detection derivative-based method
-# peak_data_dxqpcr = f.find_peaks_dx(first_qpcr2,'qPCR')
-# peak_data_dxfc = f.find_peaks_dx(first_qpcr,'FoldChange')
-
-# Peak detection threshold-based method
-
-#Think how to incorporate fold change in the threshold method for qPCR
-
 peaks_lm_qpcr= f.find_peaks_lm(first_qpcr2,'log2_qPCR',np.log2(100),1) 
 peaks_lm_qpcr2= f.find_peaks_lm(first_qpcr2,'log2_qPCR',np.log2(100),2) #2 is the threshold
 peaks_lm_qpcrs= peaks_lm_qpcr[peaks_lm_qpcr['peak'] == True]
@@ -121,7 +114,7 @@ peaks_lm_qpcr4= f.find_peaks_lm(first_qpcr2,'log2_qPCR',np.log2(100),4)
 f.plot_peaks_for_random_kids(first_qpcr2, peaks_lm_qpcr, 'log2_qPCR')
 
 #Peak detection Persistant homology-based method
-peak_data_toq1,peak_data_toq2= f.find_peaks_to(first_qpcr2,'log2_qPCR', np.log2(100))
+peak_data_toq1,peak_data_toq2= f.find_peaks_to(first_qpcr,'log2_qPCR', np.log2(100))
 
 
 
@@ -144,7 +137,7 @@ f.plot_heatmap(f1)
 f.plot_heatmap(f2)
 
 
-df= f.create_pivot_df(f1)
+df= f.create_pivot_df(f2)
 
 
 peaks_lm_qpcr['Data'] = 'log2qPCR'
@@ -184,60 +177,36 @@ g.set_axis_labels("", "height")
 g.set_titles("{col_name}")
 
 
-plt.tight_layout()
-plt.show()
+
 
 
 kids_peaks = first_qpcr2[first_qpcr2['Kid'].isin(df['Kid'])]
-from matplotlib.backends.backend_pdf import PdfPages
+kids = pd.merge(kids_peaks, df, on=['Kid', 'Timepoint'],how='inner') 
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.lines import Line2D
+from seaborn import axes_style
+so.Plot.config.theme.update(axes_style("ticks"))
+so.Plot.config.display["format"] = "svg"
 
 with PdfPages('..\\outcome\\kids_peaks_plots.pdf') as pdf:
-    for kid in df['Kid'].unique():
-        kid_data = kids_peaks[kids_peaks['Kid'] == kid]
-        kid_df = df[df['Kid'] == kid]
+    for kid in kids['Kid'].unique():
+        kid_data = kids[kids['Kid'] == kid]
 
         plt.figure()  
+        plot = (
+        so.Plot(kid_data, x="Timepoint", y="log2_qPCR_y")
+        .add(so.Dot(), color="Method", fill='peak',marker='falsetype')
+        .add(so.Line())
+        .label(x="Timepoint (weeks)", y="Log2(qPCR)")
+        .limit(x=(2, 24))  
+        )
+        fig, ax = plt.subplots()
+        plot.on(ax).plot()
+        ax.set_xticks(range(2, 24, 2))
         
-        # Scatter plot for 'both'
-        both_data = kid_df[kid_df['identify_by'] == 'both']
-        if not both_data.empty:
-            plt.scatter(both_data[both_data['peak'] == True]['Timepoint'], both_data[both_data['peak'] == True]['log2_qPCR'], color='red', marker='o', label='Both (Peak)', zorder=3)
-            plt.scatter(both_data[both_data['peak'] == False]['Timepoint'], both_data[both_data['peak'] == False]['log2_qPCR'], color='red', marker='^', label='Both (Non-Peak)', zorder=3)
-
-        # Scatter plot for 'topology'
-        topology_data = kid_df[kid_df['identify_by'] == 'topology']
-        if not topology_data.empty:
-            plt.scatter(topology_data[topology_data['peak'] == True]['Timepoint'], topology_data[topology_data['peak'] == True]['log2_qPCR'], color='blue', marker='o', label='Topology (Peak)', zorder=3)
-            plt.scatter(topology_data[topology_data['peak'] == False]['Timepoint'], topology_data[topology_data['peak'] == False]['log2_qPCR'], color='blue', marker='^', label='Topology (Non-Peak)', zorder=3)
-
-        # Scatter plot for 'local'
-        local_data = kid_df[kid_df['identify_by'] == 'local']
-        if not local_data.empty:
-            plt.scatter(local_data[local_data['peak'] == True]['Timepoint'], local_data[local_data['peak'] == True]['log2_qPCR'], color='green', marker='o', label='Local (Peak)', zorder=3)
-            plt.scatter(local_data[local_data['peak'] == False]['Timepoint'], local_data[local_data['peak'] == False]['log2_qPCR'], color='green', marker='^', label='Local (Non-Peak)', zorder=3)
-
-        # Plot the line plot for the kid
-        plt.plot(kid_data['Timepoint'], kid_data['log2_qPCR'], marker='o', linestyle='-', color='black', label=f'Kid {kid}', zorder=1)
         
-        plt.xlabel('Timepoint (weeks)')
-        plt.ylabel('Parasitemia (Log-transformed qPCR)')
-        
-        # Create custom legend handles
-        legend_elements = [
-            Line2D([0], [0], color='red', marker='o', linestyle='None', label='Both (Peak)'),
-            Line2D([0], [0], color='red', marker='^', linestyle='None', label='Both (Non-Peak)'),
-            Line2D([0], [0], color='blue', marker='o', linestyle='None', label='Topology (Peak)'),
-            Line2D([0], [0], color='blue', marker='^', linestyle='None', label='Topology (Non-Peak)'),
-            Line2D([0], [0], color='green', marker='o', linestyle='None', label='Local (Peak)'),
-            Line2D([0], [0], color='green', marker='^', linestyle='None', label='Local (Non-Peak)'),
-            Line2D([0], [0], color='black', marker='o', linestyle='-', label=f'Kid {kid}')
-        ]
-        
-        plt.legend(handles=legend_elements, bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.title(f'Kid {kid}')
         
         plt.tight_layout()
