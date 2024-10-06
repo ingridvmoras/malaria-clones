@@ -181,7 +181,7 @@ g.set_titles("{col_name}")
 
 
 kids_peaks = first_qpcr2[first_qpcr2['Kid'].isin(df['Kid'])]
-kids = pd.merge(kids_peaks, df, on=['Kid', 'Timepoint'],how='inner') 
+kids = pd.merge(kids_peaks, df, on=['Kid', 'Timepoint'], how='left') 
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -196,9 +196,9 @@ with PdfPages('..\\outcome\\kids_peaks_plots.pdf') as pdf:
 
         plt.figure()  
         plot = (
-        so.Plot(kid_data, x="Timepoint", y="log2_qPCR_y")
-        .add(so.Dot(), color="Method", fill='peak',marker='falsetype')
+        so.Plot(kid_data, x="Timepoint", y="log2_qPCR_x")
         .add(so.Line())
+        .add(so.Dot(), color="Method", fill='peak',marker='falsetype')
         .label(x="Timepoint (weeks)", y="Log2(qPCR)")
         .limit(x=(2, 24))  
         )
