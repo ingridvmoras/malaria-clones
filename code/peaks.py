@@ -1,3 +1,9 @@
+#Author: Ingrid Vanessa Mora Sanchez 
+#Email: i.moras@uniandes.edu.co 
+#Portugal Lab 
+
+
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -197,12 +203,12 @@ with PdfPages('..\\outcome\\kids_peaks_plots.pdf') as pdf:
         plt.figure()  
         plot = (
         so.Plot(kid_data, x="Timepoint", y="log2_qPCR_x")
-        .add(so.Line())
+        .add(so.Line(color=".2"))
         .add(so.Dot(), color="Method", fill='peak',marker='falsetype')
         .label(x="Timepoint (weeks)", y="Log2(qPCR)")
-        .limit(x=(2, 24))  
+        .limit(x=(2, 24),y=(0,18))  
         )
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize =(2.8,2))
         plot.on(ax).plot()
         ax.set_xticks(range(2, 24, 2))
         
@@ -210,11 +216,10 @@ with PdfPages('..\\outcome\\kids_peaks_plots.pdf') as pdf:
         plt.title(f'Kid {kid}')
         
         plt.tight_layout()
-        pdf.savefig()
+        pdf.savefig(dpi = 300, orientation = 'portrait', bbox_inches = 'tight')
         plt.close()
 
 print("kids_peaks_plots.pdf")
-
 
 #merged peaks data with filtered_dat
 
