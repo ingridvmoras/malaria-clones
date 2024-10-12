@@ -1,0 +1,180 @@
+Plasmodium falciparum Infection Duration Analysis from ama1 Amplicon
+Sequencing Data
+================
+
+### Data Preparation
+
+Load and format the raw data which contains the raw read counts per
+haplotype per timepoint for each individual in the study (data_raw.csv),
+which corresponds to Supplementary Table 6.
+
+``` r
+library(tidyverse)
+```
+
+    ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+    ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+    ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+    ## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
+    ## ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+    ## ✔ purrr     1.0.2     
+    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+    ## ✖ dplyr::filter() masks stats::filter()
+    ## ✖ dplyr::lag()    masks stats::lag()
+    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
+
+``` r
+#### Read the raw data from CSV file
+df <- read.csv("data_raw.csv", header = TRUE, sep = ",")
+
+### Perform necessary data formatting and clean-up
+
+df <- df[order(df$Date),]
+original_df <- df
+df$count <- 1 # Add counter
+
+original_unique<-df ## this is to add back metadata to the length file.
+
+df$Timepoint<-gsub("May 12",-1,df$Timepoint) ## timepoint -1 is May12, we exclude this timepoint from the analysis
+df$Timepoint<-gsub("May 13",13,df$Timepoint) ## timepoint 13 is May13
+df$cluster_name<-gsub("_","",df$cluster_name)
+
+
+df$Sample<-paste(df$ID,df$cluster_name,sep="_")
+df$ID<-NULL # delete kid column
+df$cluster_name<-NULL
+df$Sample<-gsub("\\.","",df$Sample)
+df <- df %>% filter(Timepoint!="MAL") %>%
+  distinct(Sample,Timepoint,count) %>%
+  spread(Sample,count)
+  
+df_sorted <- df[order(as.numeric(as.character(df$Timepoint))), ] ## order timepoints as numeric 
+df_sorted[is.na(df_sorted)] <- 0 ## Table fills missing values with NA so change them all to 0
+```
+
+### Timepoint Chunk Analysis
+
+Determine infection duration by identifying contiguous chunks of
+timepoints where a haplotype is present. For-loop to read within the
+chunks and allow for a certain number of skips in between positive
+timepoints. Change the number of skips by adjusting max_zeroes
+accordingly
+
+``` r
+df_length<-list()
+
+
+## Make an empty list where I will add the chunks of timepoint when a haplotype is present. Remember to run this empty list before the for loop
+
+#### This is a for loop that finds in the matrix of 0 and 1, chunks of 1s allowing TWO or FOUR SKIPS ####
+
+max_zeroes = 2 # Adjust as needed for the desired number of skips between positive timepoints
+
+# Loop through each haplotype and find chunks of contiguous timepoints
+
+for (name in colnames(df_sorted[,-1])){
+  values = df_sorted[[name]]
+  # Initialize variables for chunk identification
+  start<-NA
+  end<-NA
+  # how many zeroes encountered since
+  # the start or a chunk
+  num_zeroes<-0
+  # container for start/end
+  chunks<-list()
+  # signpost for last seen 1
+  last_one_seen<-NA
+  
+  for (index in 1:length(values)){
+   # print(c(name, index, length(values)))
+    if (index!= length(values)){
+      
+      value=values[index]
+      if(value == 0){
+        
+        # are we inside a chunk?
+        if(!is.na(start)){
+          
+          num_zeroes = num_zeroes + 1
+          # have we found a zero already?
+          if(num_zeroes > max_zeroes){
+            # end of a chunk
+            end = index - 1 - max_zeroes
+            chunks<-append(chunks,list(c(start, end)))
+            
+            # reset
+            start<-NA
+            end<-NA
+            num_zeroes<-0
+          }
+        }
+      }
+      else {
+        # is this the start of a chunk?
+        if(is.na(start)){
+          start<-index
+        }
+        # reset the number of zeroes found
+        num_zeroes<-0
+        last_one_seen<-index
+      }
+    }
+  }
+  # handle last data point
+  value=values[length(values)]
+  # are we inside a chunk?
+  if(!is.na(start)){
+    # is the last value zero?
+    if(value == 0){
+      # chunk ends at the last 1 seen
+      end = last_one_seen
+      chunks<-append(chunks,list(c(start, end)))
+    }
+    else {
+      # chunk ends at last position
+      end = length(values)
+      chunks<-append(chunks,list(c(start, end)))
+      start<-NA
+      end<-NA
+    }
+  }
+  else {
+    if(value==1){
+    #  print(name)
+      chunks<-append(chunks,list(c(length(values),length(values))))
+    }
+  }
+  # Extract Kid and cluster_name from haplotype name  
+  x=str_split(name,"_")
+  Kid<-x[[1]][1]
+  cluster_name<-x[[1]][2]
+  for (chunk in chunks){
+    start=df_sorted$Timepoint[chunk[1]]
+    end=df_sorted$Timepoint[chunk[2]]
+    df_length<-append(df_length,list(c(Kid,cluster_name,start,end)))
+  }
+}
+
+
+# Transform the list of chunks into a data frame
+
+df_length  <-  as.data.frame(matrix(unlist(df_length), nrow=length(unlist(df_length[1]))))
+df_length<-t(df_length)
+colnames(df_length)<-c("ID","Haplotype","Start","End")
+df_length<-as.data.frame(df_length)
+```
+
+### Date Mapping and Metadata Addition
+
+Map the identified chunks to original dates and incorporate metadata.
+
+``` r
+# Map original dates to the identified chunks
+
+df_length$Start<-gsub("13","May13",df_length$Start)
+df_length$End<-gsub("-1","May12",df_length$End)
+df_length$Start<-gsub("-1","May12",df_length$Start)
+df_length$End<-gsub("13","May13",df_length$End)
+
+## This gives a final data frame which has a start and an end column indicating the timepoint of detection of a clone and the last timepoint where it is detected, using the different skips which can be modified accordingly. WIth this table, the dates can be added as needed and the days between timepoints can be calculated.
+```

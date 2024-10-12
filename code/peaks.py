@@ -29,7 +29,7 @@ t_units = 2
 dat['Timepoint'] = pd.to_numeric(dat['Timepoint']) * t_units
 
 # Filter out May12 and May13 timepoints
-filtered_dat = dat[~dat['Timepoint'].isin([may_timepoint * t_units])].copy()
+filtered_dat = dat[~dat['Timepoint'].isin([may_timepoint * t_units],0)].copy()
 
 
 #FOLD_CHANGE 
@@ -46,6 +46,7 @@ first_qpcr['log2_qPCR'] = np.log2(first_qpcr['qPCR'])
 first_qpcr['log10_qPCR'] = np.log10(first_qpcr['qPCR'])
 first_qpcr['log2FoldChange'] = first_qpcr.groupby('Kid')['log2_qPCR'].diff()
 first_qpcr['log10FoldChange'] = first_qpcr.groupby('Kid')['log10_qPCR'].diff()
+
 #Calculate the moving avarage of Parasitemia for each kid
 first_qpcr['MovingAverage'] = first_qpcr.groupby('Kid')['qPCR'].transform(lambda x: f.rollavg_convolve(x, 3))
 
@@ -107,8 +108,6 @@ plt.show()
 
 
 ##PEAK DETECTION
-
-
 peaks_lm_qpcr= f.find_peaks_lm(first_qpcr2,'log2_qPCR',np.log2(100),1) 
 peaks_lm_qpcr2= f.find_peaks_lm(first_qpcr2,'log2_qPCR',np.log2(100),2) #2 is the threshold
 peaks_lm_qpcrs= peaks_lm_qpcr[peaks_lm_qpcr['peak'] == True]
