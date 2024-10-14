@@ -42,8 +42,6 @@ def find_peaks_lm(df, col, lod, opt=1):
         
         for i, (idx, row_data) in enumerate(peak_rows.iterrows()):
             
-            if (row_data['Timepoint'] <= 2 ):
-                continue
             result = {
                 'Kid': kid,
                 'height': height,
@@ -157,7 +155,6 @@ def find_peaks_to(df, col, lod):
             peaks['df']['peak'] = peaks['df']['peak'].astype(bool)
 
             peaks2 = peaks['df'][(peaks['df'][col] >= lod) & (peaks['df']['peak'] == True) &(peaks['df']['valley'] == False)]
-            peaks2 = peaks2[(peaks2['Timepoint'] != 2) & (peaks2['Timepoint'] != 24)]
             # Append the DataFrame to the results list
             results1.append(peaks['df'])
             results2.append(peaks2)
@@ -198,14 +195,14 @@ def plot_peaks(data):
         .add(so.Bar(), so.Stack())
         .scale(color="Set2_r")
         .label(x="Timepoint (weeks)", y="Percentage (%)")
-        .limit(x=(3, 23), y=(0, 100))  
+        .limit(x=(2, 24), y=(0, 100))  
     )
 
     fig, ax = plt.subplots()
     plot.on(ax).plot()
 
     
-    ax.set_xticks(range(4, 23, 2))
+    ax.set_xticks(range(2, 24, 2))
 
     handles, labels = ax.get_legend_handles_labels()
     plt.legend(handles[2:], loc=10, bbox_to_anchor=(0.5, -0.25), ncol=2, frameon=False, fontsize=14)
@@ -285,5 +282,9 @@ def plot_levels(df, col):
     
     plt.tight_layout()
     plt.show()
+
+
+
+
     
 

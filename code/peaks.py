@@ -29,7 +29,7 @@ t_units = 2
 dat['Timepoint'] = pd.to_numeric(dat['Timepoint']) * t_units
 
 # Filter out May12 and May13 timepoints
-filtered_dat = dat[~dat['Timepoint'].isin([may_timepoint * t_units],0)].copy()
+filtered_dat = dat[~dat['Timepoint'].isin([may_timepoint * t_units,0])].copy()
 
 
 #FOLD_CHANGE 
