@@ -18,7 +18,7 @@ sns.set_style("white")
 sns.set_context("talk")
 
 # Load the data
-dat = pd.read_csv('N:\Mora\malaria-clones\data\dataset_Kalifabougou.csv')
+dat = pd.read_csv('..\\data\\dataset_Kalifabougou.csv')	
 
 # Replace May12 and May13 timepoints with may_timepoint
 may_timepoint = 22
@@ -116,7 +116,7 @@ peaks_lm_qpcrs2= peaks_lm_qpcr2[peaks_lm_qpcr2['peak'] == True]
 peaks_lm_qpcr4= f.find_peaks_lm(first_qpcr2,'log2_qPCR',np.log2(100),4)
 
 
-f.plot_peaks_for_random_kids(first_qpcr2, peaks_lm_qpcr, 'log2_qPCR')
+
 
 #Peak detection Persistant homology-based method
 peak_data_toq1,peak_data_toq2= f.find_peaks_to(first_qpcr,'log2_qPCR', np.log2(100))
@@ -186,9 +186,8 @@ g.set_titles("{col_name}")
 
 
 kids_peaks = first_qpcr2[first_qpcr2['Kid'].isin(df['Kid'])]
-kids = pd.merge(kids_peaks, df, on=['Kid', 'Timepoint'], how='left') 
-
-import matplotlib.pyplot as plt
+kids = pd.merge(kids_peaks, df, on=['Kid', 'Timepoint'], how='left')
+kids=kids.rename(columns={'log2_qPCR_x':'log2_qPCR'})
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.lines import Line2D
 from seaborn import axes_style
@@ -222,10 +221,9 @@ print("kids_peaks_plots.pdf")
 
 #merged peaks data with filtered_dat
 
-peaks_set = set(zip(peaks_lm_qpcr['Kid'], peaks_lm_qpcr['Timepoint']))
-filtered_dat['is_peak'] = filtered_dat.apply(lambda row: (row['Kid'], row['Timepoint']) in peaks_set, axis=1)
+merged_df = pd.merge(dat, peaks_lm_qpcr, on=['Kid', 'Timepoint'], how='left')
 
-peaks_set = set(zip(peaks_lm_qpcr['Kid'], peaks_lm_qpcr['Timepoint']))
-dat['is_peak'] = dat.apply(lambda row: (row['Kid'], row['Timepoint']) in peaks_set, axis=1)
+merged_df['peak'] = merged_df['peak'].fillna(False)
 
-dat.to_csv('..\\outcome\\peaks.csv', index=False)
+# Save the merged DataFrame to a CSV file
+merged_df.to_csv('..\\outcome\\peaks.csv', index=False)

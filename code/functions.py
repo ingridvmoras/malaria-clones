@@ -74,7 +74,8 @@ def find_peaks_lm(df, col, lod, opt=1):
     results = pd.DataFrame(results) 
     return results
 
-def plot_peaks_for_random_kids(data, peak_data, col, num_kids=10, random_state=1):
+def plot_peaks_for_random_kids(data, num_kids=10, random_state=1):
+
     """
     Plots the original data and detected peaks for a random selection of kids.
 
@@ -86,39 +87,19 @@ def plot_peaks_for_random_kids(data, peak_data, col, num_kids=10, random_state=1
         random_state (int): The random state for reproducibility.
     """
     # Set seaborn style
-    sns.set_theme(style="whitegrid")
+    sns.set_theme(style="ticks")
 
     # Filter random kids
     filter_kid = data['Kid'].drop_duplicates().sample(n=num_kids, random_state=random_state)
 
     # Filter the peak data for the selected kids
-    filtered_peak = peak_data[peak_data['Kid'].isin(filter_kid)]
     filtered_data = data[data['Kid'].isin(filter_kid)]
 
     
     palette = sns.color_palette("tab10", num_kids)
 
-    # Plot the data
-    plt.figure(figsize=(12, 6))
-
-    # Plot the detected peaks
-    plt.scatter(filtered_peak['Timepoint'], filtered_peak[col], color='red', label='Detected Peaks', zorder=5)
-
-    # Plot the original data for each kid with different colors
-    for i, kid in enumerate(filter_kid):
-        kid_data = filtered_data[filtered_data['Kid'] == kid]
-        plt.plot(kid_data['Timepoint'], kid_data[col], marker='o', linestyle='-', color=palette[i], label=f'Kid {kid}', zorder=1)
-
-    plt.xlabel('Timepoint (weeks)')
-    plt.ylabel(f'Parasitemia ({col})')
-    plt.legend(title='Child', bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.title(f'Detected Peaks in {col} Data for Selected Kids')
-
-    plt.xticks(ticks=filtered_data['Timepoint'].unique())
-    plt.tight_layout()
-
-    plt.show()
-
+    g= sns.relplot(data=filtered_data, x="Timepoint", y="log2_qPCR",col="Kid", col_wrap=5,kind='line',palette=palette)
+    g.savefig('..\\plots\\random_kids.pdf') 
 
 def find_peaks_to(df, col, lod):
     """
