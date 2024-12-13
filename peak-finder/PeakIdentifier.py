@@ -7,19 +7,23 @@ import numpy as np
 
 class PeakIdentifier(ABC):
     @abstractmethod
-    def identify_peaks(self, df, col, lod, id):
+    def identify_peaks(self, df, **kwargs):
         pass
 
 class TopologyPeakIdentifier(PeakIdentifier):
-    def identify_peaks(self, df, col,lod=0, id):
+    def identify_peaks(self, df, **kwargs):
+        id = kwargs.get('id')
+        col = kwargs.get('col')
+        
         results = []
         for individual, group in df.groupby(id):
             if group.empty or len(group) == 1:
                 continue
             
-            #Using findpeaks library to identify peaks 
-            #edogran/findpeaks: A Python library for finding peaks in 1D data. (github.com)
-            #https://github.com/erdogant/findpeaks/
+            # Using findpeaks library to identify peaks 
+            # Taskesen, E. (2020). findpeaks is for the detection of peaks
+            # and valleys in a 1D vector and 2D array (image). (Version 2.3.1) 
+            # [Computer software]. https://erdogant.github.io/findpeaks
             
             fp = findpeaks(method='topology', lookahead=1)
             peaks = fp.peaks1d(X=group[col], method='topology')
@@ -29,67 +33,65 @@ class TopologyPeakIdentifier(PeakIdentifier):
             peaks['df']['Timepoint'] = group['Timepoint'].values
             peaks['df'][id] = individual
             peaks['df']['peak'] = peaks['df']['peak'].astype(bool)
-            peaks['df']['valley'] = peaks['df']['valley'].astype(bool)
             results.append(peaks['df'])
-        final_df = pd.concat(results, ignore_index=True)
-        return final_df
+        
+        return pd.concat(results, ignore_index=True) if results else pd.DataFrame()
 
 class LocalMaximaPeakIdentifier(PeakIdentifier):
-    def identify_peaks(self, df, col, lod, id):
+    def identify_peaks(self, df, **kwargs):
+        id = kwargs.get('id') # Individual identifier
+        col = kwargs.get('col') # Column to find peaks in
+        lod = kwargs.get('lod') # Level of detection
+        win = kwargs.get('win') # Window size or distance
+        
         results = []
-        std_data = df.groupby(id)[col].std()
-        min, max = std_data.quantile([0.25, 0.75])
+        for individual, group in df.groupby(id):
+            if group.empty or len(group) == 1:
+                continue
+            
+            peaks, _ = find_peaks(group[col], height=lod, distance=win)
+            if len(peaks) == 0:
+                continue
+            
+            peak_df = group.iloc[peaks].copy()
+            peak_df['peak'] = True
+            results.append(peak_df)
         
-        for kid, group in df.groupby(id):
-            height = lod
-            prominence = 0
-            threshold = 0.06
-            
-            std = group[col].std()
-            if std < min:
-                height = lod
-                threshold -= 0.01
-            elif std > max:
-                height = lod + 1
-                threshold += 0.01
-                prominence += 1
-                
-            peaks, properties = find_peaks(group[col], height=height, prominence=prominence, wlen=5, threshold=threshold)
-            peak_rows = group.iloc[peaks]
-            
-            for i, (idx, row_data) in enumerate(peak_rows.iterrows()):
-                result = {
-                    'Kid': kid,
-                    'height': height,
-                    'Timepoint': row_data['Timepoint'],   
-                    col: row_data[col],              
-                    'PeakHeight': properties['peak_heights'][i],  
-                    'Prominence': properties['prominences'][i],  
-                    'log2FoldChange': row_data['log2FoldChange'],
-                    'LeftBase': properties['left_bases'][i],
-                    'RightBase': properties['right_bases'][i],
-                    'LeftThreshold': properties['left_thresholds'][i],
-                    'RightThreshold': properties['right_thresholds'][i],
-                    'std': std
-                }
-                
-                if (row_data['log2FoldChange'] < 1 and row_data['log2FoldChange'] == result['Prominence'] and 
-                    result['RightBase'] - result['LeftBase'] == 2):
-                    result['peak'] = False
-                    result['falsetype'] = 'type1'
-                elif (row_data['log2FoldChange'] < 1 and result['Prominence'] == result['RightThreshold']):
-                    result['peak'] = False
-                    result['falsetype'] = 'type2'
-                elif (row_data['log2FoldChange'] < 1):
-                    result['peak'] = False
-                    result['falsetype'] = 'type3'
-                else:
-                    result['peak'] = True
+        return pd.concat(results, ignore_index=True) if results else pd.DataFrame()
 
-                results.append(result)
+class S1PeakIdentifier(PeakIdentifier):
+    
+    #Implementation of S1 peak finding algorithm described by 
+    # Palshikar, Girish. (2009). Simple Algorithms for Peak Detection in Time-Series. 
+    def identify_peaks(self, df, **kwargs):
+        id = kwargs.get('id')
+        col = kwargs.get('col')
+        win = kwargs.get('win')
         
-        results = pd.DataFrame(results) 
-        return results
+        df['peak'] = False
+
+        for kid, group in df.groupby(id):
+             data = group[col].values
+             data_extended = np.concatenate([np.zeros(win), data, np.zeros(win)])
+             max_list = []
+
+             for i, value in enumerate(data_extended):
+                 if (i >= win) and (i < len(data_extended) - win):
+                    try:
+                        max_left = data_extended[(i - win):i + 1].max()
+                        max_right = data_extended[i:(i + win) + 1].max()
+                        chek_value = data_extended[i] - ((max_left + max_right) / 2)
+                    except ValueError:
+                        pass
+
+                    if (chek_value >= 0):
+                        max_list.append(i - win)
+
+             df.loc[group.index[max_list], 'peak'] = True
+        return df
+
+
+
 
 class peak_finding:
     @staticmethod
@@ -98,10 +100,14 @@ class peak_finding:
             return TopologyPeakIdentifier()
         elif method == 'local':
             return LocalMaximaPeakIdentifier()
+        elif method == 's1':
+            return S1PeakIdentifier()
         else:
             raise ValueError(f"Unknown method: {method}")
+        
+        
+#Function to identify peaks
 
-
-def identify_peaks(df, col, lod, id, method):
+def identify_peaks(df, method, **kwargs):
     peak_identifier = peak_finding.method(method)
-    return peak_identifier.identify_peaks(df, col, lod, id)
+    return peak_identifier.identify_peaks(df, **kwargs)
