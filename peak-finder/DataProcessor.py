@@ -46,13 +46,4 @@ class DataProcessor:
 
         return data, data_ft
 
-# main.py
-#from data_processor import DataProcessor
 
-# Initialize the DataProcessor with the file path
-#processor = DataProcessor('..\\data\\dataset_Kalifabougou.csv')
-
-# Load and process the data
-#data, data_ft = processor.load_and_process_data()
-
-# Continue with further analysis or visualization
