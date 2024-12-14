@@ -23,7 +23,7 @@ data['Timepoint'] = pd.to_numeric(data['Timepoint'])
 
 # Filter out May12 and May13 timepoints
 filtered_data = data[~data['Timepoint'].isin([may_timepoint,0])].copy()
-first_data= filtered_data.groupby(['Timepoint', 'Kid']).first().reset_index()
+first_data= filtered_data.drop_duplicates(subset=['Timepoint', 'Kid'], keep='first').copy()
 
 
 # NA values are filled with the mean of the qPCR values for each kid. qPCR values lower than 1 are set to 1.

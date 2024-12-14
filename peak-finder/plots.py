@@ -2,7 +2,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import seaborn.objects as so
 
-class PeakPlotter:
+
+sns.set_style("ticks") 
+cb_palette = ["#999999", "#E69F00", "#56B4E9", "#009E73",
+              "#F0E442", "#0072B2", "#D55E00", "#CC79A7"]
+    # http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#a-colorblind-friendly-palette
+    # http://jfly.iam.u-tokyo.ac.jp/color/
+
+class plots:
     def plot_mean_fold_change(self, data):
         mean_fold_change = data.groupby('Kid')['log2_qPCR'].std()
         plt.figure(figsize=(10, 6))
