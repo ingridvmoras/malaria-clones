@@ -4,7 +4,9 @@ import numpy as np
 import scipy as sci
 import pandas as pd
 import seaborn as sns
+from datetime import datetime
 import seaborn.objects as so
+import first_appearances as fa
 from matplotlib.colors import ListedColormap
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -72,3 +74,25 @@ def merge_peak_data(data: pd.DataFrame, df_peak: pd.DataFrame,method, id='Kid') 
         merged_data = pd.merge(data, df_peak[[id, 'Timepoint', 'peak']], on=[id, 'Timepoint'], how='left')
 
     return merged_data
+
+def first_appearances(df: pd.DataFrame, id: str, method: str, output_dir:str) -> pd.DataFrame:
+
+        df['cluster_name'] = df['cluster_name'].str.replace("_", "")
+        original_unique = df.copy()  # To add metadata to the length file
+        df['count'] = 1  
+        df['Sample'] = df[id].astype(str) + "_" + df['cluster_name']
+        df = df.drop_duplicates(subset=['Sample', 'Timepoint', 'count'])
+        df = df.pivot(index='Timepoint', columns='Sample', values='count').fillna(0).astype(int)
+        df_sorted = df.sort_index().reset_index()
+
+        # Define the list of max_zeroes values
+        max_zeroes_list = [0, 1, 2, 3]
+
+        # Get the current date
+        current_date = datetime.now().strftime("%Y-%m-%d")
+
+        # Loop through max_zeroes_list and save results
+        for max_zeroes in max_zeroes_list:
+             result_df = fa.chunk_analysis(df_sorted, original_unique, max_zeroes)
+             file_name = f"{output_dir}/infection_duration_analysis_{max_zeroes}_zeroes_{current_date}_{method}.csv"
+             result_df.to_csv(file_name, index=False)
