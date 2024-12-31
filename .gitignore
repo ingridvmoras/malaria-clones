@@ -17,3 +17,7 @@ peak-finder/__pycache__/peakanalysis.cpython-312.pyc
 peak-finder/__pycache__/plots.cpython-312.pyc
 peak-finder/__pycache__/peakdetection.cpython-312.pyc
 peak-finder/__pycache__/dataprocessor.cpython-312.pyc
+code/appearances_Sept2023.R
+code/analysis.py
+code/first_appearances.py
+code/peaks.py
