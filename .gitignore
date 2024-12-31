@@ -1,14 +1,10 @@
 
 
 /plots
-/peak-finder/malaria-clones
 /peak-finder/plots
 /peak-finder/outcome
-peak-finder/plots/swarmplot_methods_plot.png.png
-peak-finder/malaria-clones/plots/lineplot_methods_plot.svg
-peak-finder/plots/methods_plot.png.pdf
-peak-finder/malaria-clones/plots/swarmplot_methods_plot.svg
-peak-finder/peakdetection.ipynb
+
+
 code/__pycache__/codium_e6a3f77f-f051-4f4e-9002-f95ea05b4d83_functions.cpython-312-pytest-8.3.4.pyc
 code/__pycache__/codium_3dfa781b-e19c-4a9e-a231-4aa667f62be9_functions.cpython-312-pytest-8.3.4.pyc
 code/Thumbs.db
@@ -21,9 +17,3 @@ peak-finder/__pycache__/peakanalysis.cpython-312.pyc
 peak-finder/__pycache__/plots.cpython-312.pyc
 peak-finder/__pycache__/peakdetection.cpython-312.pyc
 peak-finder/__pycache__/dataprocessor.cpython-312.pyc
-code/analysis.py
-code/peaks.py
-code/analysis.py
-code/first_appearances.py
-code/peaks.py
-code/appearances_Sept2023R.py
