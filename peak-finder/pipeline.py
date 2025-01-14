@@ -49,4 +49,7 @@ class PeakDetectionPipeline:
         for method, df_peak in methods.items():
             df = f.merge_peak_data(original_data, df_peak, method=method)
             f.first_appearances(df, id=kwargs['id'], method=method, output_dir=output_dir)
-           
+            s1= f.run_simulation(df, id=kwargs['id'], rounds=1000, weighted=True)
+            s2= f.run_simulation2(df, id=kwargs['id'], rounds=1000, weighted=False)
+            s1.to_csv(f'{output_dir}/simulation_{method}_weighted.csv', index=False)
+            s2.to_csv(f'{output_dir}/simulation_{method}_unweighted.csv', index=False)
