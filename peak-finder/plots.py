@@ -5,7 +5,7 @@ import pandas as pd
 import utils 
 import os
 from matplotlib.backends.backend_pdf import PdfPages
-from sklearn.metrics import import ConfusionMatrixDisplay
+from sklearn.metrics import ConfusionMatrixDisplay
 import numpy as np
 
 

@@ -3,7 +3,7 @@
 /plots
 /peak-finder/plots
 /peak-finder/outcome
-
+/outcome
 
 code/__pycache__/codium_e6a3f77f-f051-4f4e-9002-f95ea05b4d83_functions.cpython-312-pytest-8.3.4.pyc
 code/__pycache__/codium_3dfa781b-e19c-4a9e-a231-4aa667f62be9_functions.cpython-312-pytest-8.3.4.pyc
@@ -21,3 +21,4 @@ code/appearances_Sept2023.R
 code/analysis.py
 code/first_appearances.py
 code/peaks.py
+outcome/infection_duration_analysis_3_zeroes_2025-01-13_TPH.csv

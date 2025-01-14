@@ -96,3 +96,77 @@ def first_appearances(df: pd.DataFrame, id: str, method: str, output_dir:str) ->
              result_df = fa.chunk_analysis(df_sorted, original_unique, max_zeroes)
              file_name = f"{output_dir}/infection_duration_analysis_{max_zeroes}_zeroes_{current_date}_{method}.csv"
              result_df.to_csv(file_name, index=False)
+
+
+def run_simulation(df,id='Kid',col='qPCR', rounds=100, weighted=True):
+    
+    #Author: Manuela Carrasquilla
+    # keep track of which clones are seen at each time point
+    # includes the previous timepoint
+    # also keeping track of the frequency of each clone
+    c_tp = {}
+    for tp in df['Timepoint'].unique():
+        v =df[df['Timepoint'].isin([tp, tp-1])]['cluster_name'].value_counts() / df[df['Timepoint'].isin([tp, tp-1])].shape[0]
+        c_tp[tp] = (list(v.index), v.values)
+    
+    # run simulations
+    # do it cycling through each timepoint first
+    # then kid
+    # then each simulation
+    # this is probably the fastest way to do it
+    res = []
+    for tp in sorted(df['Timepoint'].unique()):
+        print(f'simulating timepoint {tp}')
+        
+        # select time point from original dataframe
+        t = df[df['Timepoint'] == tp]
+
+        # cycle through each id in this time point
+        for ind in t[id].unique():
+            # select id from this timepoint
+            tt = t[t[id] == ind]
+            
+            # keep all the values that are not gonna be randomized
+            # in a variable for convenience
+            values = tt.iloc[0]
+            
+            # run the randomizations
+            for i in range(rounds):
+                # pick random clones
+                while True:
+                    # weighted: the proportion of clones is taken into account
+                    if weighted:
+                        clones = random.choices(c_tp[tp][0], k=values['COI'],
+                                        weights=c_tp[tp][1])
+                    # unweighted: each clone is equally probable
+                    else:
+                        clones = random.choices(c_tp[tp][0], k=values['COI'])
+                    
+                    # avoid picking the same clone multiple times
+                    # inefficient but whatever
+                    if len(set(clones)) == values['COI']:
+                        break
+                
+                # save the data in a list
+                for clone in clones:
+                    res.append((id, tp, clone,
+                                values['COI'],
+                                values[col],
+                                values['peak'],
+                                i))
+
+    # create the final dataframe
+    r = pd.DataFrame(res,
+                     columns=[id, 'Timepoint', 'cluster_name',
+                              'COI', col,
+                              'peak', 'simulation'])
+    
+    # keep track of when each clone in each kid and simulation was first observed
+    r['first_appearance'] = 0
+    r = r.set_index(['kid', 'clone', 'simulation', 'timepoint']).sort_index()
+    r.loc[r.reset_index().groupby(['kid', 'clone', 'simulation'])['timepoint'].min().reset_index().values,
+          'first_appearance'] = 1
+    r = r.reset_index()
+    r = r.sort_values(['timepoint', 'kid', 'simulation', 'clone'])
+    
+    return r
