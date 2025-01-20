@@ -60,7 +60,8 @@ class PeakDetectionPipeline:
         self.peak_analysis.analyze_methods(mdf, id= kwargs['id'])
         
         # Plot results 
-        plots.plot_methods(mdf,col= kwargs['col'],id= kwargs['id'],save_path=plots_dir)
+        
+        plots.plot_methods(mdf, id=kwargs['id'], col=kwargs['col'], f_name='methods', save_path=plots_dir, num_sample=1)
         
         # Save results to csv with peak data merged with original data
         methods = {'TPH': df_tph, 'LM': df_lm, 'S1': df_s1}
