@@ -1,0 +1,9 @@
+LICENSE.txt
+README.md
+setup.py
+malaria_clones.egg-info/PKG-INFO
+malaria_clones.egg-info/SOURCES.txt
+malaria_clones.egg-info/dependency_links.txt
+malaria_clones.egg-info/entry_points.txt
+malaria_clones.egg-info/requires.txt
+malaria_clones.egg-info/top_level.txt

@@ -1,31 +1,29 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='malaria_clones',
-    version='0.1',
+    name='malaria-clones',
+    version='1.0.0',
+    description='A pipeline for peak detection and analysis in malaria clones data',
+    author='Ingrid Vanessa Mora Sanchez',
+    author_email='i.moras@uniandese.edu.com',
+    url='https://github.com/ingridvmoras/malaria-clones',  # Replace with your project's URL
     packages=find_packages(),
     install_requires=[
         'numpy',
         'pandas',
-        'matplotlib',
         'seaborn',
-        'scipy',
-        'statannot',
-        'findpeaks',
-        'pytest',
-        'scikit-learn'
-         
+        'matplotlib',
+        
     ],
     entry_points={
         'console_scripts': [
-            'malaria_clones=malaria_clones.main:main',
+            'run-pipeline=main:main',  
         ],
     },
-    author='Ingrid Vanessa Mora Sanchez',
-    author_email='i.moras@uniandes.edu.co',
-    description='A project to identify peaks of malaria parasite density and count first appearences of clones',
-    url='https://github.com/ingridvmoras/malaria_clones',
     classifiers=[
-        'Programming Language :: Python :: 3'
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
     ],
+    python_requires='>=3.6',
 )
