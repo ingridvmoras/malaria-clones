@@ -30,6 +30,7 @@ class DataProcessor:
         # Log transform qPCR counts for more normal distribution
         data[f'log2_{col}'] = np.log2(data[col])
         data[f'log10_{col}'] = np.log10(data[col])
+        data['FoldChange'] = data.groupby(id)[f'{col}'].diff()
         data['log2FoldChange'] = data.groupby(id)[f'log2_{col}'].diff()
         data['log10FoldChange'] = data.groupby(id)[f'log10_{col}'].diff()
         data = data[data[id].isin(data[id].value_counts()[data[id].value_counts() >= 3].index)]

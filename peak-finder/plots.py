@@ -77,19 +77,18 @@ def plot_methods(df, id, col, f_name='methods_plot', save_path='plots', num_samp
 def plot_matrix(method, pdf, metrics, conf_matrix, contingency_table=None):
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     
-    cm_display = ConfusionMatrixDisplay(conf_matrix, display_labels = [0, 1])
-    cm_display.plot(ax=axes[0], cmap='Blues')
-    # sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', 
-    #             xticklabels=['No Peak', 'Peak'], 
-    #             yticklabels=['No Peak', 'Peak'], ax=axes[0])
+    cm_display = ConfusionMatrixDisplay(conf_matrix, display_labels = [False, True])
+    cm_display.plot(ax=axes[0], cmap='Blues') 
+    axes[0].set_xlabel('Predicted')
+    axes[0].set_ylabel('Ground Truth') 
     axes[0].set_title(f'Confusion Matrix for {method}')
     
     if contingency_table is not None:
         sns.heatmap(contingency_table, annot=True, fmt='d', cmap='Blues', 
-                    xticklabels=['No Valley', 'Valley'], 
-                    yticklabels=['No Peak', 'Peak'], ax=axes[1])
-        axes[1].set_xlabel('Peak')
-        axes[1].set_ylabel('Valley')
+                    xticklabels=['False', 'True'], 
+                    yticklabels=['False', 'True'], ax=axes[1])
+        axes[1].set_xlabel('Valley')
+        axes[1].set_ylabel('Peak')
         axes[1].set_title(f'Contingency Matrix for {method}')
         
     plt.show()

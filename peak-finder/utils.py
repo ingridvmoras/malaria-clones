@@ -33,7 +33,7 @@ def mergedf(dfs:list,col:str, id:str):
 
     return df
 
-def sample_random(df, id, num_samples=1, random_state=41):
+def sample_random(df, id, num_samples=1, random_state=42):
     """
     Groups the DataFrame by 'id' and obtains a random sample from each group.
 
@@ -227,7 +227,7 @@ def run_simulation(df,id='Kid',col='qPCR', rounds=100, weighted=True):
                 
                 # save the data in a list
                 for clone in clones:
-                    res.append((id, tp, clone,
+                    res.append((ind, tp, clone,
                                 values['COI'],
                                 values[col],
                                 values['peak'],
@@ -242,7 +242,7 @@ def run_simulation(df,id='Kid',col='qPCR', rounds=100, weighted=True):
     # keep track of when each clone in each kid and simulation was first observed
     r['first_appearance'] = 0
     r = r.set_index([id, 'cluster_name', 'simulation', 'Timepoint']).sort_index()
-    r.loc[r.reset_index().groupby([id, 'clone', 'simulation'])['Timepoint'].min().reset_index().values,
+    r.loc[r.reset_index().groupby([id, 'cluster_name', 'simulation'])['Timepoint'].min().reset_index().values,
           'first_appearance'] = 1
     r = r.reset_index()
     r = r.sort_values(['Timepoint', id, 'simulation', 'cluster_name'])

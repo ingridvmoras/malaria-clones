@@ -4,6 +4,7 @@ import seaborn as sns
 from dataprocessor import DataProcessor
 from peakdetection import identify_peaks
 from peakanalysis import PeakAnalysis
+from infectionanalysis import analyze_infection, analyze_simulations
 import plots
 import utils as f
 import os
@@ -15,7 +16,24 @@ class PeakDetectionPipeline:
         self.data_filepath = data_filepath
 
     def run(self):
+        '''
+        Executes the main pipeline for peak detection and analysis.
+        This method performs the following steps:
+        1. Creates necessary directories for output and plots.
+        2. Loads and preprocesses the data.
+        3. Identifies peaks using different methods (TPH, LM, S1).
+        4. Merges results from different peak detection methods.
+        5. Analyzes the performance of peak detection methods.
+        6. Plots the results.
+        7. Saves the results to CSV files with peak data merged with original data.
+        8. Runs simulations and saves the results.
+        9. Analyzes the number of first appearances per 100 peaks observed for each method.
+        Raises:
+            Exception: If any step in the pipeline fails.
+        '''    
         output_dir = 'outcome'
+        plots_dir = 'plots'
+        os.makedirs(plots_dir, exist_ok=True)
         os.makedirs(output_dir, exist_ok=True)
         
         # Load and preprocess data 
@@ -35,21 +53,29 @@ class PeakDetectionPipeline:
         df_lm = identify_peaks(processed_data.copy(), method='LM', **kwargs) #Local Maxima
         df_s1 = identify_peaks(processed_data.copy(), method='S1', **kwargs) #S1
         
-        # Merged results from different peak detection methods
+        # Merge results from different peak detection methods
         mdf = f.mergedf([df_tph, df_lm, df_s1],col= kwargs['col'],id= kwargs['id'])
         
         # Analyze performance of peak detection methods
         self.peak_analysis.analyze_methods(mdf, id= kwargs['id'])
         
         # Plot results 
-        plots.plot_methods(mdf,col= kwargs['col'],id= kwargs['id'])
+        plots.plot_methods(mdf,col= kwargs['col'],id= kwargs['id'],save_path=plots_dir)
         
         # Save results to csv with peak data merged with original data
         methods = {'TPH': df_tph, 'LM': df_lm, 'S1': df_s1}
         for method, df_peak in methods.items():
+            df_peak['peak'] = df_peak['peak'].astype(int)
             df = f.merge_peak_data(original_data, df_peak, method=method)
             f.first_appearances(df, id=kwargs['id'], method=method, output_dir=output_dir)
             s1= f.run_simulation(df, id=kwargs['id'], rounds=1000, weighted=True)
-            s2= f.run_simulation2(df, id=kwargs['id'], rounds=1000, weighted=False)
-            s1.to_csv(f'{output_dir}/simulation_{method}_weighted.csv', index=False)
-            s2.to_csv(f'{output_dir}/simulation_{method}_unweighted.csv', index=False)
+            s2= f.run_simulation(df, id=kwargs['id'], rounds=1000, weighted=False)
+            s1.to_csv(f'{output_dir}/simulation_weighted_{method}.csv', index=False)
+            s2.to_csv(f'{output_dir}/simulation_unweighted_{method}.csv', index=False)
+        
+        #Get the number of first apparitions per 100 peaks observed for each method 
+        
+        analyze_infection(output_dir,files="infection_duration_analysis*.csv", plots_dir=plots_dir)
+        analyze_simulations(plots_dir,files='simulation_*')
+        
+        

@@ -22,3 +22,4 @@ code/analysis.py
 code/first_appearances.py
 code/peaks.py
 outcome/infection_duration_analysis_3_zeroes_2025-01-13_TPH.csv
+peak-finder/__pycache__/infectionanalysis.cpython-312.pyc

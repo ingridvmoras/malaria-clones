@@ -21,9 +21,9 @@ class PeakAnalysis:
         df['peak_count'] = df.groupby(level=[id, 'Timepoint'])['peak'].transform('sum')
         df = df.reset_index()
         
-        df['ground_truth'] = (df['peak_count'] == len(df['Method'].dropna().unique())).astype(int)
-        unique_methods = df['Method'].unique()
+        df['ground_truth'] = (df['peak_count'] == len(df['Method'].dropna().unique())).astype(int) #modify to externaly pass the ground truth
         
+        unique_methods = df['Method'].unique() 
         with PdfPages(path) as pdf:
             for method in unique_methods:
                 df_method = df[df['Method'] == method]
