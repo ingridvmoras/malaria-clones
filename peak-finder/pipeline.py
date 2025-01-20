@@ -76,7 +76,7 @@ class PeakDetectionPipeline:
         
         #Get the number of first apparitions per 100 peaks observed for each method 
         
-        analyze_infection(output_dir,files="infection_duration_analysis*.csv", plots_dir=plots_dir)
-        analyze_simulations(plots_dir,files='simulation_*')
+        analyze_infection(output_dir,files="infection_duration_analysis*.csv", plot_dir=plots_dir)
+        data= analyze_simulations(output_dir,files='simulation_*', plot_dir=plots_dir)
         
-        
+

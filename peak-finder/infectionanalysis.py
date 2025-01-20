@@ -1,18 +1,18 @@
-import pandas as pd
-import glob
 import os
-import matplotlib.pyplot as plt
+import glob
+import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
+from plots import plot_simulations, plot_first_appearances
 from datetime import datetime
 
-#Code modified from apperances_Sept2023.R by Manuela Carrasquilla
-
-def analyze_infection(directory='outcome',files="infection_duration_analysis*.csv",plot_dir='plots'):
-    all_files = glob.glob(os.path.join(directory,files))
+def analyze_infection(directory='outcome', files="infection_duration_analysis*.csv", plot_dir='plots'):
+    all_files = glob.glob(os.path.join(directory, files))
     current_date = datetime.now().strftime("%Y-%m-%d")
 
+    info = []  # Inicializar la lista fuera del bucle para acumular datos de todos los archivos
+
     for file in all_files:
-        info = []
         max_zeroes = file.split('_')[-4]
         method = file.split('_')[-1].split('.')[0]
         data = pd.read_csv(file)
@@ -28,11 +28,12 @@ def analyze_infection(directory='outcome',files="infection_duration_analysis*.cs
         plt.yticks(fontsize=10)
         plt.title(f'First Appearances Per Timepoint (max_zeroes={max_zeroes})')
         plot_filename = f"first_appearances_per_timepoint_{max_zeroes}_zeroes_{current_date}.png"
+        os.makedirs(plot_dir, exist_ok=True) 
         plt.savefig(os.path.join(plot_dir, plot_filename))
         plt.close()
 
         myTab = pd.crosstab(data['first_appearance'], data['peak'])
-        print(myTab)
+        print(f'{method} with max_zeroes={max_zeroes}')
         sns.heatmap(myTab, annot=True, fmt='d', cmap='Blues', 
                     xticklabels=['False', 'True'], 
                     yticklabels=['False', 'True'])
@@ -52,19 +53,29 @@ def analyze_infection(directory='outcome',files="infection_duration_analysis*.cs
         for t in types:
             subset = data[data['Type'] == t]
             myTab3 = pd.crosstab(subset['first_appearance'], subset['peak'])
-            first_appearance_per_100_peaks_observed = round(myTab.loc[1, 1] / (myTab.loc[0, 1] + myTab.loc[1, 1]) * 100)
+            first_appearance_per_100_peaks_observed = round(myTab3.loc[1, 1] / (myTab3.loc[0, 1] + myTab3.loc[1, 1]) * 100)
             info.append([method, max_zeroes, t, first_appearance_per_100_peaks_observed])
 
-        info_df = pd.DataFrame(info, columns=['method', 'max_zeroes', 'type', 'first_appearance_per_100_peaks_observed'])
-        info_df.to_csv(f'{directory}first_appearances_per_100_peaks_observed_{current_date}.csv', index=False)
+    info_df = pd.DataFrame(info, columns=['method', 'max_zeroes', 'type', 'first_appearance_per_100_peaks_observed'])
+    os.makedirs(directory, exist_ok=True)  
+    info_df.to_csv(f'{directory}/first_appearances_per_100_peaks_observed_{current_date}.csv', index=False)
+    plot_first_appearances(info_df, plot_dir)
 
-def analyze_simulations(directory='plots', files='simulation_*'):
+
+
+
+def analyze_simulations(directory, files='simulation_*',plot_dir='plots'):
     all_files = glob.glob(os.path.join(directory, files))
     current_date = datetime.now().strftime("%Y-%m-%d")
+
+    if not all_files:
+        print(f"No files found in directory '{directory}' with pattern '{files}'")
+        return
 
     results = []
 
     for file in all_files:
+        print(f"Processing file: {file}")
         data = pd.read_csv(file)
         method = file.split('_')[-1].split('.')[0]
         data['method'] = method
@@ -75,7 +86,7 @@ def analyze_simulations(directory='plots', files='simulation_*'):
             simulation_number = []
 
             for k, simulation in enumerate(simulations, start=1):
-                mytab = pd.crosstab(simulation['first_appearance'], simulation['is_peak'])
+                mytab = pd.crosstab(simulation['first_appearance'], simulation['peak'])
                 simulation_number.append(k)
                 first_appearance_per_100_peaks.append(round(mytab.loc[1, 1] / (mytab.loc[0, 1] + mytab.loc[1, 1]) * 100))
 
@@ -83,14 +94,14 @@ def analyze_simulations(directory='plots', files='simulation_*'):
             weighted['type'] = 'weighted'
             weighted['method'] = method
             results.append(weighted)
-        
-        elif 'unweighted' in file:
+
+        if 'unweighted' in file:
             simulations = [group for _, group in data.groupby('simulation')]
             first_appearance_per_100_peaks = []
             simulation_number = []
 
             for k, simulation in enumerate(simulations, start=1):
-                mytab = pd.crosstab(simulation['first_appearance'], simulation['is_peak'])
+                mytab = pd.crosstab(simulation['first_appearance'], simulation['peak'])
                 simulation_number.append(k)
                 first_appearance_per_100_peaks.append(round(mytab.loc[1, 1] / (mytab.loc[0, 1] + mytab.loc[1, 1]) * 100))
 
@@ -98,19 +109,15 @@ def analyze_simulations(directory='plots', files='simulation_*'):
             unweighted['type'] = 'unweighted'
             unweighted['method'] = method
             results.append(unweighted)
-        
+
+    if not results:
+        print("No results to concatenate")
+        return
+
     all_data = pd.concat(results, ignore_index=True)
-    methods = all_data['method'].unique()
-    for method in methods:
-        method_data = all_data[all_data['method'] == method]
-        plt.figure(figsize=(10, 6))
-        sns.histplot(data=method_data, x='number_of_first_appearances_100_peaks', hue='type', element='step', stat='count', binwidth=1, kde=True)
-        plt.title(f'First Appearances per 100 Peaks Observed - Method: {method}')
-        plt.xlabel('Number of First Appearances per 100 Peaks')
-        plt.ylabel('Count')
-        plt.legend(title='Type')
-        plt.savefig(f'{directory}/first_appearances_per_100_peaks_simulations_{method}_{current_date}.png')
-        plt.close()
+
+    plot_simulations(all_data, plot_dir, current_date)
+    
 
     return all_data
 

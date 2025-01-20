@@ -98,3 +98,28 @@ def plot_matrix(method, pdf, metrics, conf_matrix, contingency_table=None):
     print(f'Metrics for {method}:')
     for metric_name, metric_value in metrics.items():
         print(f'{metric_name}: {metric_value}')
+
+def plot_simulations(all_data, plot_dir, current_date):
+    methods = all_data['method'].unique()
+    for method in methods:
+        method_data = all_data[all_data['method'] == method]
+        plt.figure(figsize=(10, 6))
+        sns.histplot(data=method_data, x='number_of_first_appearances_100_peaks', hue='type', element='step', stat='count', binwidth=1)
+        plt.title(f'First Appearances per 100 Peaks Observed - Method: {method}')
+        plt.xlabel('Number of First Appearances per 100 Peaks')
+        plt.ylabel('Count')
+        plt.legend( labels=['Weighted', 'Unweighted'])
+        plot_filename = f'first_appearances_per_100_peaks_{method}_{current_date}.png'
+        plt.savefig(os.path.join(plot_dir, plot_filename))
+        plt.close()
+
+def plot_first_appearances(df, plot_dir):
+    sns.lineplot(x='max_zeroes', y='first_appearance_per_100_peaks_observed', hue='type', style='method', markers=True, dashes=False, data=df)
+    plt.xlabel('Skips')
+    plt.ylabel('First Appearances per 100 Peaks Observed')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.xticks(ticks=sorted(df['max_zeroes'].unique()))  
+    plt.tight_layout()
+    plot_filename = f'first_appearances_per_100_peaks.png'
+    plt.savefig(os.path.join(plot_dir, plot_filename))
+    plt.close()
