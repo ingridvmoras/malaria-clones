@@ -1,10 +1,9 @@
 import argparse
 import numpy as np
-from pipeline import PeakDetectionPipeline
-
+from peak_finder.pipeline import PeakDetectionPipeline
 def main():
     parser = argparse.ArgumentParser(description='Run the peak detection pipeline.')
-    parser.add_argument('filepath', type=str, help='Path to the data file')
+    parser.add_argument('data_filepath', type=str, help='Path to the data file')
     parser.add_argument('--id', type=str, default='Kid', help='Column name with ID of individuals')
     parser.add_argument('--col', type=str, default='log2_qPCR', help='Column name with parasitemia data')
     parser.add_argument('--lod', type=float, default=np.log2(100), help='Level of detection for LocalMaximaPeakIdentifier')
@@ -23,7 +22,7 @@ def main():
         'preprocess': args.preprocess
     }
 
-    pipeline = PeakDetectionPipeline(args.filepath, **kwargs)
+    pipeline = PeakDetectionPipeline(args.data_filepath, **kwargs)
     pipeline.run()
 
 if __name__ == "__main__":

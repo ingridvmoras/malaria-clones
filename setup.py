@@ -18,13 +18,13 @@ setup(
     version='1.0.0',
     description='A pipeline for peak detection and analysis in malaria clones data',
     author='Ingrid Vanessa Mora Sanchez',
-    author_email='i,moras@uniandes.edu.com',
+    author_email='i.moras@uniandes.edu.com',
     url='https://github.com/ingridvmoras/malaria-clones',  
     packages=find_packages(),
     install_requires=install_requires,
     entry_points={
         'console_scripts': [
-            'peak-finder=main:main',  
+            'peak-finder=peak_finder.main:main',  
         ],
     },
     classifiers=[

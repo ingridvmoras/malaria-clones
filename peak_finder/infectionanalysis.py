@@ -3,7 +3,7 @@ import glob
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from plots import plot_simulations, plot_first_appearances
+from peak_finder.plots import plot_simulations, plot_first_appearances
 from datetime import datetime
 
 def analyze_infection(directory='outcome', files="infection_duration_analysis*.csv", plot_dir='plots'):

@@ -1,2 +1,2 @@
 [console_scripts]
-peak-finder = main:main
+peak-finder = peak_finder.main:main

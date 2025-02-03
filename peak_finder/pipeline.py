@@ -2,12 +2,12 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from dataprocessor import DataProcessor
-from peakdetection import identify_peaks
-from peakanalysis import PeakAnalysis
-from infectionanalysis import analyze_infection, analyze_simulations
-import plots
-import utils as f
+from peak_finder.dataprocessor import DataProcessor
+from peak_finder.peakdetection import identify_peaks
+from peak_finder.peakanalysis import PeakAnalysis
+from peak_finder.infectionanalysis import analyze_infection, analyze_simulations
+import peak_finder.plots as plots
+import peak_finder.utils as f
 import os
 
 

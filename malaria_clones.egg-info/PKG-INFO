@@ -4,7 +4,7 @@ Version: 1.0.0
 Summary: A pipeline for peak detection and analysis in malaria clones data
 Home-page: https://github.com/ingridvmoras/malaria-clones
 Author: Ingrid Vanessa Mora Sanchez
-Author-email: i,moras@uniandes.edu.com
+Author-email: i.moras@uniandes.edu.com
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent

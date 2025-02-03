@@ -3,8 +3,8 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import numpy as np
 import pandas as pd
 from matplotlib.backends.backend_pdf import PdfPages 
-import plots as p
-import utils as f 
+import peak_finder.plots as p
+import peak_finder.utils as f 
 class PeakAnalysis:
     def check_normality(self, data, id, col):
         mean_fold_change = data.groupby(id)[col].std()

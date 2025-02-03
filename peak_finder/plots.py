@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 # import seaborn.objects as so
 import pandas as pd
-import utils 
+import peak_finder.utils as utils
 import os
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib_venn import venn2, venn3,  venn3_circles 
