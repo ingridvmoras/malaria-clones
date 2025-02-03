@@ -2,18 +2,24 @@ Metadata-Version: 2.2
 Name: malaria-clones
 Version: 1.0.0
 Summary: A pipeline for peak detection and analysis in malaria clones data
-Home-page: https://github.com/yourusername/malaria-clones
-Author: Your Name
-Author-email: your.email@example.com
+Home-page: https://github.com/ingridvmoras/malaria-clones
+Author: Ingrid Vanessa Mora Sanchez
+Author-email: i,moras@uniandes.edu.com
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: OS Independent
 Requires-Python: >=3.6
 License-File: LICENSE.txt
-Requires-Dist: numpy
-Requires-Dist: pandas
-Requires-Dist: seaborn
-Requires-Dist: matplotlib
+Requires-Dist: numpy>=1.18.0
+Requires-Dist: pandas>=1.0.0
+Requires-Dist: matplotlib>=3.1.0
+Requires-Dist: seaborn>=0.10.0
+Requires-Dist: scipy>=1.4.0
+Requires-Dist: statannot>=0.2.3
+Requires-Dist: findpeaks>=1.0.5
+Requires-Dist: pytest>=5.0.0
+Requires-Dist: scikit-learn>=0.22.0
+Requires-Dist: matplotlib-venn
 Dynamic: author
 Dynamic: author-email
 Dynamic: classifier

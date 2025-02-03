@@ -7,3 +7,11 @@ malaria_clones.egg-info/dependency_links.txt
 malaria_clones.egg-info/entry_points.txt
 malaria_clones.egg-info/requires.txt
 malaria_clones.egg-info/top_level.txt
+peak-finder/__init__.py
+peak-finder/dataprocessor.py
+peak-finder/infectionanalysis.py
+peak-finder/peakanalysis.py
+peak-finder/peakdetection.py
+peak-finder/pipeline.py
+peak-finder/plots.py
+peak-finder/utils.py

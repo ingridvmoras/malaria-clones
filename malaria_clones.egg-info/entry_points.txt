@@ -1,2 +1,2 @@
 [console_scripts]
-run-pipeline = main:main
+peak-finder = main:main
