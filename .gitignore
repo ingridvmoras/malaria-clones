@@ -23,3 +23,8 @@ code/first_appearances.py
 code/peaks.py
 outcome/infection_duration_analysis_3_zeroes_2025-01-13_TPH.csv
 peak-finder/__pycache__/infectionanalysis.cpython-312.pyc
+/build
+/code
+/malaria_clones.egg-infection_duration_analysis_3_zeroes_2025
+peak-finder/__pycache__
+

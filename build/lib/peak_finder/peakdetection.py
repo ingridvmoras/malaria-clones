@@ -56,6 +56,7 @@ class LocalMaximaPeakIdentifier(PeakIdentifier):
         col = kwargs.get('col') # Column to find peaks in
         lod = kwargs.get('lod') # Level of detection
         win = kwargs.get('win_lm') # Window size or distance
+        falsetype= kwargs.get('falsetype')
         
         if col=='log2_qPCR':
             lod= np.log2(lod)
@@ -112,23 +113,34 @@ class LocalMaximaPeakIdentifier(PeakIdentifier):
                 df.loc[idx, 'std'] = std
                 #df.loc[idx, 'Method'] = 'LM' #Local Maxima method
                 
-                # Identification of 'false' peaks useful for quality control
-                if (group.loc[idx, 'log2FoldChange'] < 1 and group.loc[idx, 'log2FoldChange'] == properties['prominences'][i] and 
-                    properties['right_bases'][i] - properties['left_bases'][i] == 2):
-                    df.loc[idx, 'peak'] = False
-                    df.loc[idx, 'falsetype'] = 'type1'
-                    df.loc[idx, 'valley'] = True
-                elif (group.loc[idx, 'log2FoldChange'] < 1 and properties['prominences'][i] == properties['right_thresholds'][i]):
+                if col=='log2_qPCR':
+                    fc= 'log2FoldChange'
+                    num= 1
+                elif col=='log10_qPCR':
+                    fc='log10FoldChange'
+                    num=np.log10(2)
+                elif col=='qPCR':
+                    fc='FoldChange'
+                    num=2 
+                
+                if falsetype:
+                
+                    # Identification of 'false' peaks useful for quality control
+                    if (group.loc[idx, fc] < num and group.loc[idx, fc] == properties['prominences'][i] and 
+                        properties['right_bases'][i] - properties['left_bases'][i] == 2):
+                        df.loc[idx, 'peak'] = False
+                        df.loc[idx, 'falsetype'] = 'type1'
+                        df.loc[idx, 'valley'] = True
+                    elif (group.loc[idx, fc] < num and properties['prominences'][i] == properties['right_thresholds'][i]):
+                        
+                        df.loc[idx, 'peak'] = False
+                        df.loc[idx, 'falsetype'] = 'type2'
+                        df.loc[idx, 'valley'] = True
                     
-                    df.loc[idx, 'peak'] = False
-                    df.loc[idx, 'falsetype'] = 'type2'
-                    df.loc[idx, 'valley'] = True
-                elif (group.loc[idx, 'log2FoldChange'] < 1):
-                    #df.loc[idx, 'peak'] = False
-                    df.loc[idx, 'falsetype'] = 'type3'
-                    df.loc[idx, 'valley'] = True
-                else:
-                    df.loc[idx, 'peak'] = True
+                    elif (group.loc[idx, fc] < num):
+                        df.loc[idx, 'peak'] = False
+                        df.loc[idx, 'falsetype'] = 'type3'
+
         
         return df
 
