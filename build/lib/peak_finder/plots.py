@@ -131,10 +131,10 @@ def plot_simulations(all_data, plot_dir, current_date):
         plt.close()
 
 def plot_first_appearances(df, plot_dir):
-    sns.lineplot(x='max_zeroes', y='first_appearance_per_100_peaks_observed', hue='type', style='method', markers=True, dashes=False, data=df)
+    sns.lineplot(x='max_zeroes', y='first_appearance_per_100_peaks_observed', hue='type', style='method', markers=True, dashes=False, data=df, palette=['purple','orange'])
     plt.xlabel('Skips')
     plt.ylabel('First Appearances per 100 Peaks Observed')
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.legend( labels=['Type', 'Method'], bbox_to_anchor=(1.05, 1), loc='upper left', frameon=False)
     plt.xticks(ticks=sorted(df['max_zeroes'].unique()))  
     plt.tight_layout()
     plot_filename = f'first_appearances_per_100_peaks.png'

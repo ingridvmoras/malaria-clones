@@ -45,9 +45,9 @@ class PeakDetectionPipeline:
         
         if self.kwargs.get('preprocess', True):
             preprocessed_data, original_data = self.data_processor.preprocess_data(data) # Preprocess data if needed
-            processed_data = self.data_processor.process_data(preprocessed_data)
+            processed_data, num_ids= self.data_processor.process_data(preprocessed_data)
         else:
-            processed_data = self.data_processor.process_data(data)
+            processed_data, num_ids = self.data_processor.process_data(data)
            
         # Identify peaks using different methods
         
@@ -68,7 +68,7 @@ class PeakDetectionPipeline:
         
         # Plot results 
         plots.venndiagram(df_tph,df_lm,df_s1,self.kwargs['id'],save_path=plots_dir)
-        plots.plot_methods(mdf, id=self.kwargs['id'], col=self.kwargs['col'], f_name='methods', save_path=plots_dir, num_sample=50)
+        plots.plot_methods(mdf, id=self.kwargs['id'], col=self.kwargs['col'], f_name='methods', save_path=plots_dir, num_sample=num_ids)
         
         # Save results to csv with peak data merged with original data
         methods = {'TPH': df_tph, 'LM': df_lm, 'S1': df_s1}

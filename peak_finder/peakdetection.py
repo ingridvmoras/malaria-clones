@@ -38,10 +38,15 @@ class TopologyPeakIdentifier(PeakIdentifier):
             peak_values = peaks['df']['y'].values
             peak_indices = group[group[col].isin(peak_values)].index
             true_peak_indices = peak_indices[peaks['df']['peak'].values]
-            #df['Method'] = df['Method'].where(~df.index.isin(true_peak_indices), 'TPH') #Topology Persistent Homology method
+            
             df.loc[peak_indices, 'peak'] = peaks['df']['peak'].values
             df.loc[peak_indices, 'score'] = peaks['df']['score'].values
             df.loc[peak_indices, 'valley'] = peaks['df']['valley'].values
+            
+            for idx in true_peak_indices:
+                if idx == group.index[0] or idx == group.index[-1]:
+                    df.loc[idx, 'peak'] = False
+            
     
         return df
     
@@ -51,6 +56,12 @@ class LocalMaximaPeakIdentifier(PeakIdentifier):
         col = kwargs.get('col') # Column to find peaks in
         lod = kwargs.get('lod') # Level of detection
         win = kwargs.get('win_lm') # Window size or distance
+        falsetype= kwargs.get('falsetype')
+        
+        if col=='log2_qPCR':
+            lod= np.log2(lod)
+        elif col=='log10_qPCR':
+            lod= np.log10(lod)
         
         std_data = df.groupby(id)[col].std()
         min, max = std_data.quantile([0.25, 0.75])
@@ -88,6 +99,7 @@ class LocalMaximaPeakIdentifier(PeakIdentifier):
         
             peaks, properties = find_peaks(group[col], height=height, prominence=prominence, wlen=win, threshold=threshold)
             peak_index = group.iloc[peaks].index
+            peak_index = [idx for idx in peak_index if idx != group.index[0] and idx != group.index[-1]]
             
             for i, idx in enumerate(peak_index):
                 df.loc[idx, 'peak'] = True
@@ -101,23 +113,34 @@ class LocalMaximaPeakIdentifier(PeakIdentifier):
                 df.loc[idx, 'std'] = std
                 #df.loc[idx, 'Method'] = 'LM' #Local Maxima method
                 
-                # Identification of 'false' peaks useful for quality control
-                if (group.loc[idx, 'log2FoldChange'] < 1 and group.loc[idx, 'log2FoldChange'] == properties['prominences'][i] and 
-                    properties['right_bases'][i] - properties['left_bases'][i] == 2):
-                    df.loc[idx, 'peak'] = False
-                    df.loc[idx, 'falsetype'] = 'type1'
-                    df.loc[idx, 'valley'] = True
-                elif (group.loc[idx, 'log2FoldChange'] < 1 and properties['prominences'][i] == properties['right_thresholds'][i]):
+                if col=='log2_qPCR':
+                    fc= 'log2FoldChange'
+                    num= 1
+                elif col=='log10_qPCR':
+                    fc='log10FoldChange'
+                    num=np.log10(2)
+                elif col=='qPCR':
+                    fc='FoldChange'
+                    num=2 
+                
+                if falsetype:
+                
+                    # Identification of 'false' peaks useful for quality control
+                    if (group.loc[idx, fc] < num and group.loc[idx, fc] == properties['prominences'][i] and 
+                        properties['right_bases'][i] - properties['left_bases'][i] == 2):
+                        df.loc[idx, 'peak'] = False
+                        df.loc[idx, 'falsetype'] = 'type1'
+                        df.loc[idx, 'valley'] = True
+                    elif (group.loc[idx, fc] < num and properties['prominences'][i] == properties['right_thresholds'][i]):
+                        
+                        df.loc[idx, 'peak'] = False
+                        df.loc[idx, 'falsetype'] = 'type2'
+                        df.loc[idx, 'valley'] = True
                     
-                    df.loc[idx, 'peak'] = False
-                    df.loc[idx, 'falsetype'] = 'type2'
-                    df.loc[idx, 'valley'] = True
-                elif (group.loc[idx, 'log2FoldChange'] < 1):
-                    #df.loc[idx, 'peak'] = False
-                    df.loc[idx, 'falsetype'] = 'type3'
-                    df.loc[idx, 'valley'] = True
-                else:
-                    df.loc[idx, 'peak'] = True
+                    elif (group.loc[idx, fc] < num):
+                        df.loc[idx, 'peak'] = False
+                        df.loc[idx, 'falsetype'] = 'type3'
+
         
         return df
 
@@ -148,10 +171,14 @@ class S1PeakIdentifier(PeakIdentifier):
                         pass
 
                     if (chek_value >= 0):
-                        max_list.append(i - win)
-
-             df.loc[group.index[max_list], 'peak'] = True
-             #df.loc[group.index[max_list], 'Method'] = 'S1'
+                        idx = i - win
+                        if idx != 0 and idx != len(data) - 1:
+                            max_list.append(idx)
+                            df.loc[group.index[idx], 'peak'] = True
+                        else:
+                            df.loc[group.index[idx], 'peak'] = False
+        
+            
         return df  
 
 

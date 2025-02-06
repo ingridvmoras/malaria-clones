@@ -34,7 +34,10 @@ class DataProcessor:
         data['log2FoldChange'] = data.groupby(id)[f'log2_{col}'].diff()
         data['log10FoldChange'] = data.groupby(id)[f'log10_{col}'].diff()
         data = data[data[id].isin(data[id].value_counts()[data[id].value_counts() >= 3].index)]
-        return data
+        data = data.sort_values(by=[id, 'Timepoint'])
+        num_ids = data[id].nunique()
+        print(f"Number of parasitaemia time series for peak detection: {num_ids}")
+        return data, num_ids
     
     
 

@@ -29,7 +29,7 @@ def mergedf(dfs:list,col:str, id:str):
         _type_: pd.Dataframe with the merged data 
     """    
     merged = pd.concat(dfs, ignore_index=True)
-    df = merged.filter(items=[id, 'Timepoint', col, 'Method', 'peak', 'valley'])
+    df = merged.filter(items=[id, 'Timepoint', col, 'Method', 'peak', 'valley','FoldChange'])
 
     return df
 

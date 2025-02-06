@@ -16,7 +16,7 @@ install_requires=[
 setup(
     name='malaria-clones',
     version='1.0.0',
-    description='A pipeline for peak detection and analysis in malaria clones data',
+    description='A pipeline for peak detection in malaria parasitemia time-series and analysis of malaria clones',
     author='Ingrid Vanessa Mora Sanchez',
     author_email='i.moras@uniandes.edu.com',
     url='https://github.com/ingridvmoras/malaria-clones',  
@@ -32,5 +32,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
     ],
+    license_files=["LICEN[CS]E*"],
     python_requires='>=3.6',
 )
